@@ -395,6 +395,7 @@ export default function Studio() {
           )}
           {board && tab === "board" && (
             <Device
+              key={board.person.name}
               board={board}
               active={Math.min(active, board.folders.length - 1)}
               setActive={setActive}
