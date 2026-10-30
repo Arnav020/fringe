@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, LoaderCircle, Pencil, RotateCcw, ShieldCheck, Sparkles, UserRound, Wand2 } from "lucide-react";
-import type { Board, BuildInput, Cell, Folder, TraceEvent } from "@/lib/types";
+import type { Board, BuildInput, Cell, Folder, FolderKey, TraceEvent } from "@/lib/types";
+import { FOLDER_META } from "@/lib/vocab";
 import { PERSONAS, personaBySlug, type Persona } from "@/lib/personas";
 import { runAgent, store } from "@/lib/client";
 import { exportObz } from "@/lib/obf";
@@ -14,10 +15,14 @@ import BridgePanel from "./BridgePanel";
 import BaselinePanel from "./BaselinePanel";
 import RefineBar from "./RefineBar";
 import TasteMap from "./TasteMap";
+import ChoosePanel from "./ChoosePanel";
+
+const TYPE_FOLDER: Record<string, FolderKey> = { tv_show: "shows", movie: "movies", artist: "music", videogame: "games", book: "books", person: "people" };
+const ORDER: FolderKey[] = ["shows", "movies", "music", "games", "books", "people", "places", "food", "bridge"];
 
 const LANG_NAME: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Marathi", ta: "Tamil", bn: "Bengali" };
 
-type Tab = "board" | "bridge" | "baseline";
+type Tab = "board" | "choose" | "bridge" | "baseline";
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
 const CACHE_VERSION = "v6";
@@ -318,6 +323,7 @@ export default function Studio() {
               [
                 ["board", `${board?.person.name ?? input.name}'s board`],
                 ["bridge", `Talk with ${partnerDefaults.name}`],
+                ["choose", "This or that"],
                 ["baseline", "Without Qloo"],
               ] as [Tab, string][]
             ).map(([k, l]) => (
@@ -334,6 +340,17 @@ export default function Studio() {
                 {l}
               </button>
             ))}
+            {board?.person.lang && LANG_NAME[board.person.lang] && (
+              <button
+                type="button"
+                aria-pressed={home}
+                onClick={() => setHome((v) => !v)}
+                className={`neu-btn h-11 px-4 text-[15px] font-semibold ${home ? "text-accent" : "text-ink-2"}`}
+                title={`Speak the board in ${LANG_NAME[board.person.lang]}`}
+              >
+                {home ? `Speaking ${LANG_NAME[board.person.lang]}` : `Speak ${LANG_NAME[board.person.lang]}`}
+              </button>
+            )}
           </div>
 
           {err && (
@@ -398,6 +415,36 @@ export default function Studio() {
             />
           )}
           {board && tab === "baseline" && <BaselinePanel key={board.person.name} board={board} input={input} />}
+          {board && tab === "choose" && (
+            <ChoosePanel
+              key={board.person.name}
+              board={board}
+              onAdd={(picks) => {
+                // What they chose goes straight in: chosen by the person, not guessed by anyone.
+                const b: Board = structuredClone(board);
+                b.folders.forEach((f) => f.cells.forEach((c) => delete c.isNew));
+                for (const { cell, over } of picks) {
+                  const key = TYPE_FOLDER[cell.entityType ?? ""] ?? "shows";
+                  let f = b.folders.find((x) => x.key === key);
+                  if (!f) {
+                    f = { key, title: FOLDER_META[key].title, cells: [], quick: [] };
+                    b.folders.push(f);
+                  }
+                  if (f.cells.some((c) => c.entityId === cell.entityId)) continue;
+                  f.cells.unshift({ ...cell, kind: "seed", isNew: true, status: "approved", why: `${b.person.name} chose this over ${over} in This or that.` });
+                }
+                b.folders.sort((x, y) => ORDER.indexOf(x.key) - ORDER.indexOf(y.key));
+                setBoard(b);
+                return b;
+              }}
+              onBoard={setBoard}
+              onDone={() => {
+                setTab("board");
+                const i = board.folders.findIndex((f) => f.cells.some((c) => c.isNew));
+                if (i >= 0) setActive(i);
+              }}
+            />
+          )}
         </section>
 
         {/* Right: the agent's reasoning */}

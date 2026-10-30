@@ -18,6 +18,8 @@ import {
   Building2,
   Blocks,
   Home as HomeIcon,
+  Hand,
+  Languages,
 } from "lucide-react";
 import Nav, { REPO_URL } from "@/components/Nav";
 import { PERSONAS } from "@/lib/personas";
@@ -118,7 +120,7 @@ export default function Home() {
           {[
             ["~4 million", "Americans can't reliably meet daily communication needs with their own speech.", "Beukelman & Mirenda, via the National Academies (2017)"],
             ["#1", "reason adults communicate is social closeness, ahead of information, etiquette or needs.", "Light's purposes of communicative interaction"],
-            ["By hand", "is how personal “fringe” vocabulary gets added today: one button at a time, by a parent or SLP, and it goes stale.", "AAC practice guidance (AssistiveWare, PrAACtical AAC)"],
+            ["~30%", "of autistic children remain minimally verbal, even after years of support. Many never get a board that knows what they love.", "Tager-Flusberg & Kasari, Autism Research, 2013"],
             ["Stale", "systems and poor fit are among the factors 275 AAC specialists most linked to people abandoning AAC.", "Johnson, Inglebret, Jones & Ray, AAC 22(2), 2006"],
             ["Western", "norms shape most AAC practice; therapists have asked for country-specific tiles since 2022.", "Kulkarni & Parmar, AAC 33, 2017 · cboard#1267"],
           ].map(([big, body, src]) => (
@@ -129,6 +131,9 @@ export default function Home() {
             </div>
           ))}
         </div>
+        <p className="mx-auto mt-6 max-w-3xl text-center text-[14px] leading-relaxed text-muted">
+          And a board doesn&rsquo;t stop speech: across 27 cases of AAC intervention, none spoke less and most spoke more (Millar, Light &amp; Schlosser, JSLHR, 2006). Today, fringe vocabulary is still added by hand, one button at a time.
+        </p>
         <p className="mx-auto mt-10 max-w-3xl text-center display text-[30px] sm:text-[38px] leading-tight text-ink">
           A board without culture is <span className="italic text-muted">technically functional.</span> A board that knows what someone loves is how they make friends.
         </p>
@@ -226,6 +231,9 @@ export default function Home() {
             [ShieldCheck, "A human approves", "Favourites you named go straight in. Everything the agent suggests waits for a parent or SLP to keep or remove."],
             [Download, "No lock-in", "Exports to Open Board Format (.obz), the open interchange format for AAC boards, with pictures and phrases."],
             [HeartHandshake, "Talk with someone", "Build a page for one conversation partner: shared themes, joint topics, and questions to ask them."],
+            [Hand, "Let them choose", "This or that: two pictures at a time from Qloo, the next pair following what they reached for. For people who can't tell you what they like."],
+            [Languages, "Their family's language", "Hindi or Spanish core words and phrases, spoken with a matching voice, using Qloo's localised names."],
+            [MessageSquareText, "Learns from use", "Taps are counted on the device. \"More like what she taps\" sends the most-used buttons to Qloo as the signal."],
             [Sparkles, "Evidence on every button", "Affinity, which favourites led to it, how widely known it is, age groups and address. Nothing is unexplained."],
             [Lock, "Nothing stored", "No account. Boards live in your browser; the server keeps no personal data."],
           ].map(([Icon, t, b]) => {

@@ -123,6 +123,11 @@ function toCell(e: Q.QlooEntity, key: FolderKey, why: string, kind: Cell["kind"]
 export function rulePlan(instruction: string, board: Board): { name: string; args: Record<string, unknown> }[] {
   const plan: { name: string; args: Record<string, unknown> }[] = [];
   const labels = board.folders.flatMap((f) => f.cells.map((c) => c.label));
+  // "Maya taps these most: Bluey (9x), Roblox (5x)" / "picked these in This or that: …" → more like them.
+  if (/\b(taps these most|picked these|chose these)\b/i.test(instruction)) {
+    const hit = labels.filter((l) => instruction.toLowerCase().includes(l.toLowerCase()));
+    if (hit.length) return [{ name: "more_like", args: { labels: hit } }];
+  }
   let rest = instruction;
   // Quoted phrases for a folder: 'Add "Six!" and "Out!" to people'.
   const quoted = [...rest.matchAll(/["“]([^"”]{1,60})["”]/g)].map((m) => m[1].trim());

@@ -14,6 +14,7 @@ Fringe is an AI agent that builds personal **AAC** (augmentative and alternative
 - Those boards are built around **needs**: *eat, drink, toilet, pain*. But adults rank **social closeness** as their first reason to communicate (Light's purposes of communicative interaction), and closeness runs on *fringe vocabulary*: the personal words for a favourite show, a band, a team or a local place.
 - Today, fringe vocabulary is added **by hand**, one button at a time, by a parent or a speech-language pathologist (SLP) with a full caseload. It goes stale as soon as tastes change.
 - That staleness is a known cause of abandonment. In a survey of 275 AAC specialists, **not maintaining or adjusting the system** and **poor fit** were among the factors most often linked to people giving up on AAC (Johnson, Inglebret, Jones & Ray, *AAC* 22(2), 2006).
+- About **30% of autistic children remain minimally verbal** even after years of intervention (Tager-Flusberg & Kasari, *Autism Research*, 2013). And AAC doesn't stop speech: in a review of 27 cases, none spoke less and 89% spoke more (Millar, Light & Schlosser, *JSLHR*, 2006).
 - And the fit is cultural. A review of research on culturally and linguistically diverse AAC users found AAC practice is shaped by Western, Euro-American norms (Kulkarni & Parmar, *AAC* 33, 2017). Speech therapists have asked the open-source AAC app Cboard for country-specific tiles since 2022 ([cboard#1267](https://github.com/cboard-org/cboard/issues/1267)): *alfajores* in Argentina, *queque* in Chile.
 
 An AAC board without culture is *technically functional*. A board that knows what someone loves is how they make friends. That gap is the one this hackathon asks about.
@@ -30,6 +31,7 @@ An AAC board without culture is *technically functional*. A board that knows wha
 | **Reads the room** | Uses Qloo demographics to label who each topic will land with: Bluey is a *parents & teachers* topic, Sinatra a *grandkids* one. |
 | **Keeps it current** | Tastes change. A caregiver types *"she's obsessed with dinosaurs now, find somewhere she can swim, remove Hello Neighbor, it scares her"*. A **tool-calling agent** plans and runs Qloo-backed tools: a dinosaur tag as a hard filter ranked by *her* taste (The Land Before Time, not Jurassic Park), swimming pools in Austin, and a removal. It also **learns from use**: taps are counted on the device, and "more like what she taps" sends the most-tapped buttons to Qloo as the signal. |
 | **Fits how they access it** | "Large targets" mode gives eye-gaze, switch and motor-access users fewer, bigger buttons. |
+| **Lets them choose** | Many AAC users can't tell anyone what they like, and a caregiver's note only lists what's already known. **This or that** is a paired-choice preference session: two pictures at a time from Qloo, one "more like what they just picked", one from a different domain of their taste. The next pair follows what they reached for, and the picks go onto the board as favourites *they* chose, then steer more suggestions. |
 | **Talk with someone** | Builds a page for one conversation partner (Grandpa Joe, a new lab partner). It compares the two taste profiles, searches with both as the signal (adding Qloo's retirement audience when one of them is 60+), keeps topics with positive affinity in **both** people's age groups, and uses explainability to prefer topics that draw on **both** people's favourites: *The Waltons* draws 55% on Maya's and 45% on Grandpa Joe's. |
 | **Shows its evidence** | Every button has a "why": affinity score, source, age groups, address, Qloo entity id. The agent's steps stream live into the studio. |
 | **Human in the loop** | Favourites the caregiver named go straight in. Every agent suggestion waits for a parent or SLP to keep or remove it. |
@@ -56,7 +58,7 @@ Running the LLM-only control on Maya's note produced mostly restatements of the 
 | Compare | `GET /v2/analysis/compare` | The taste themes two people share ("Comedy, Family"). |
 | Audiences | `signal.demographics.audiences=urn:audience:life_stage:retirement` | An extra bridge signal when the partner (or the AAC user) is 60+. |
 | Localised names | `properties.akas` | Hindi (and other) names Qloo knows, used as labels when the board speaks the family's language. |
-| Joint and tapped signals | `signal.interests.entities` | Both people's favourites for the bridge; the most-tapped buttons for "more like what she taps". |
+| Joint, tapped and chosen signals | `signal.interests.entities` | Both people's favourites for the bridge; the most-tapped buttons for "more like what she taps"; each "This or that" choice as the signal for the next pair. |
 
 **What we tried and left out, on purpose.** `signal.demographics.age` on the main expansion pulled an Indian 12-year-old's board towards US youth titles (Kota Factory and Shreya Ghoshal gave way to The Crystal Maze), so age is handled by content ratings and demographics instead; the age signal is used only for snacks. `/v2/trending` in the hackathon snapshot ends in June 2026 and is flat week to week, so it can't say what is rising now; Fringe uses each entity's popularity percentile to show how widely known a topic is ("an easy opener with anyone") instead.
 
@@ -138,10 +140,11 @@ No Qloo response data is committed to this repository. All Qloo data is fetched 
 2. Tap pictures and core words to hear them spoken and build a sentence. Tap the **info** button on any picture: Qloo affinity, which of Maya's favourites led to it (explainability), how widely known it is, and who it lands with.
 3. Scroll the left column to **Where Maya's taste lives**: the Qloo heatmap of Austin with her places pinned on it.
 4. Open **Talk with Grandpa Joe** → build. You get the shared themes, how much each topic draws on each person's favourites, both age groups' affinity bars, and a new folder on the board.
-5. Open **Without Qloo** → run the LLM-only control and compare.
-6. In **"Tastes change"**, tap *"She's obsessed with dinosaurs now"* and watch the tool-calling agent update the board. After tapping a few pictures, a **"More like what Maya taps"** chip appears.
-7. Turn on **Caregiver review**, keep or remove suggestions, then **Export (.obz)**.
-8. Try **Aarav** (12, Mumbai): his board knows Chhota Bheem, Motu Patlu, Lagaan, Shreya Ghoshal and the cricket grounds near him. Turn on **Speak Hindi**. Then **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
+5. Open **This or that**: tap one of two pictures six times. The pairs follow her choices; then add the picks to the board.
+6. Open **Without Qloo** → run the LLM-only control and compare.
+7. In **"Tastes change"**, tap *"She's obsessed with dinosaurs now"* and watch the tool-calling agent update the board. After tapping a few pictures, a **"More like what Maya taps"** chip appears.
+8. Turn on **Caregiver review**, keep or remove suggestions, then **Export (.obz)**.
+9. Try **Aarav** (12, Mumbai): his board knows Chhota Bheem, Motu Patlu, Lagaan, Shreya Ghoshal and the cricket grounds near him. Turn on **Speak Hindi**. Then **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
 
 ## Responsible design
 
