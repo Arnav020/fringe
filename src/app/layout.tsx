@@ -7,6 +7,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const instrument = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://fringe-aac.vercel.app"),
   title: "Fringe — the words for what they love",
   description:
     "An AI agent that builds personal AAC communication boards from Qloo's taste graph, so people who can't rely on speech can talk about what they love.",
