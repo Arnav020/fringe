@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nameMatch, screenOk, suitable } from "@/lib/agent";
+import { bestMatch, naiveParse, nameMatch, screenOk, suitable } from "@/lib/agent";
 import { rulePlan } from "@/lib/refine";
 import type { Board } from "@/lib/types";
 import type { QlooEntity } from "@/lib/qloo";
@@ -14,6 +14,21 @@ describe("name matching (Qloo search is not typo-tolerant)", () => {
     expect(nameMatch("Pokemon", "Pokémon")).toBe(1);
     expect(nameMatch("Spider-Verse", "Spider-Man: Across the Spider-Verse")).toBe(1);
     expect(nameMatch("The Great British Bake Off", "The Great British Baking Show")).toBeGreaterThanOrEqual(0.55);
+  });
+});
+
+describe("fallback parsing and picking (when the model is unavailable)", () => {
+  it("strips lead-ins in English and Spanish and splits on and / y", () => {
+    expect(naiveParse("She loves Bluey, Taylor Swift and Minecraft").seeds.map((s) => s.text)).toEqual(["Bluey", "Taylor Swift", "Minecraft"]);
+    expect(naiveParse("Le encantan Pokémon, el Real Madrid, Bad Bunny y la tortilla de patatas").seeds.map((s) => s.text)).toEqual(["Pokémon", "Real Madrid", "Bad Bunny", "tortilla de patatas"]);
+  });
+  it("prefers the exact, better-known match", () => {
+    const hits: QlooEntity[] = [
+      { id: "1", name: "Grand Theft Auto Tribute Band", type: "artist", popularity: 0.2 },
+      { id: "2", name: "Grand Theft Auto", type: "videogame", popularity: 0.99 },
+    ];
+    expect(bestMatch("Grand Theft Auto", hits, () => true)?.id).toBe("2");
+    expect(bestMatch("Bluee", [{ id: "3", name: "Blue Eye Samurai", type: "tv_show" }], () => true)).toBeUndefined();
   });
 });
 

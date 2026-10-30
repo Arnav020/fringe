@@ -1,7 +1,7 @@
 import "server-only";
 import * as Q from "./qloo";
 import { chatTools, type AgentMessage, type ToolDef } from "./llm";
-import { KIND_TO_TYPE, nameMatch, suitable, TEMPLATE, TYPE_TO_FOLDER, guards, shortName } from "./agent";
+import { KIND_TO_TYPE, bestMatch, suitable, TEMPLATE, TYPE_TO_FOLDER, guards, shortName } from "./agent";
 import type { Board, Cell, Folder, FolderKey, TraceEvent } from "./types";
 import { FOLDER_META } from "./vocab";
 
@@ -211,7 +211,8 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
           let hits = await Q.search(query, type, 5).catch(() => []);
           if (!hits.some((h) => TYPE_TO_FOLDER[String(h.type)] && h.type !== "place")) hits = [...hits, ...(await Q.search(query, undefined, 8).catch(() => []))];
           // Search isn't typo-tolerant, so only a close name match counts; anything else is treated as a theme.
-          entity = hits.find((h) => TYPE_TO_FOLDER[String(h.type)] && h.type !== "place" && nameMatch(query, h.name) >= 0.55);
+          entity = bestMatch(query, hits, (h) => !!TYPE_TO_FOLDER[String(h.type)] && h.type !== "place" && (!type || h.type === type));
+          if (!entity && type) entity = bestMatch(query, hits, (h) => !!TYPE_TO_FOLDER[String(h.type)] && h.type !== "place");
         }
         if (entity) {
           const key = TYPE_TO_FOLDER[String(entity.type)]!;

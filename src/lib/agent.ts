@@ -102,12 +102,25 @@ interface Parsed {
   themes: string[];
 }
 
-function naiveParse(likes: string): Parsed {
+/** Lead-ins a caregiver writes before the list ("She loves", "Le encantan"), in a few languages. */
+const LEAD_IN = /^(?:(?:she|he|they|my (?:son|daughter|child|kid)|[A-Z][a-z]+)\s+)?(?:really\s+|totally\s+)?(?:loves?|likes?|enjoys?|is (?:obsessed with|into|crazy about)|'s (?:obsessed with|into)|le encantan?|le gustan?|adora|aime|liebt|mag)\s+/i;
+
+/** The no-model fallback: split the list and strip lead-ins, so "Loves Bluey and Minecraft" still works. */
+export function naiveParse(likes: string): Parsed {
   const parts = likes
-    .split(/,|;|\.|\n| and /i)
-    .map((s) => s.trim())
-    .filter(Boolean);
+    .replace(LEAD_IN, "")
+    .split(/,|;|\.|\n|\s+(?:and|y|e|et|und|&)\s+/i)
+    .map((s) => s.trim().replace(LEAD_IN, "").replace(/^(?:el|la|los|las|le|les|the|a|an)\s+/i, "").replace(/[!?"“”]+/g, "").trim())
+    .filter((s) => s.length > 1 && s.length <= 60);
   return { seeds: parts.map((text) => ({ text, kind: "unknown" })), foods: [], activities: [], themes: [] };
+}
+
+/** Among search hits that match the name, the exact name first, then the better-known entity. */
+export function bestMatch(query: string, hits: Q.QlooEntity[], accept: (e: Q.QlooEntity) => boolean) {
+  return hits
+    .filter((h) => accept(h) && nameMatch(query, h.name) >= 0.55)
+    .map((h, i) => ({ h, i, m: nameMatch(query, h.name), exact: norm(query) === norm(h.name) }))
+    .sort((a, b) => Number(b.exact) - Number(a.exact) || b.m - a.m || (b.h.popularity ?? 0) - (a.h.popularity ?? 0) || a.i - b.i)[0]?.h;
 }
 
 async function understand(input: BuildInput, t: Tracer): Promise<{ parsed: Parsed; model?: string }> {
@@ -226,8 +239,7 @@ async function resolve(parsed: Parsed, t: Tracer): Promise<Seed[]> {
             hits = [...wide.filter(boardable), ...hits];
           }
           // Qloo search is not typo-tolerant: "Bluee" comes back as "Blue Eye Samurai". Only accept a close name match.
-          const close = hits.filter((h) => nameMatch(s.text, h.name) >= 0.55);
-          return { text: s.text, entity: close.find(boardable) };
+          return { text: s.text, entity: bestMatch(s.text, hits, boardable) };
         }),
       );
       return seeds;
@@ -335,7 +347,8 @@ async function expand(sig: Signal, person: Person, t: Tracer) {
             res = [...themed.flat(), ...res].filter((e) => !seen.has(e.id) && !!seen.add(e.id));
           }
           // Theme-park specials are catalogued as shows; they're places, not topics.
-          out[key] = res.filter((e) => !THEME_PARK.test(e.name) && suitable(person.age, e));
+          // Only the type that was asked for (a tag signal can bring back people in the artist list).
+          out[key] = res.filter((e) => String(e.type) === type && !THEME_PARK.test(e.name) && suitable(person.age, e));
         }),
       );
       return out;
