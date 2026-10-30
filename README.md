@@ -23,6 +23,8 @@ An AAC board without culture is *technically functional*. A board that knows wha
 | **Builds the board** | Turns a one-line note into topic folders (Shows, Movies, Music, Games, Books, Places, Food) with real pictures, natural first-person phrases and social-closeness phrases ("Have you seen it?"). |
 | **Keeps core words fixed** | The 16 high-frequency core words stay in fixed positions, colour-coded with the Modified Fitzgerald Key, so motor plans never break. Personal vocabulary lives in folders. |
 | **Reads the room** | Uses Qloo demographics to label who each topic will land with: Bluey is a *parents & teachers* topic, Sinatra a *grandkids* one. |
+| **Keeps it current** | Tastes change. A caregiver types *"she's obsessed with dinosaurs now, find somewhere she can swim, remove Hello Neighbor, it scares her"*. A **tool-calling agent** plans and runs Qloo-backed tools: a dinosaur tag as a hard filter ranked by *her* taste (The Land Before Time, not Jurassic Park), swimming pools in Austin, and a removal. |
+| **Fits how they access it** | "Large targets" mode gives eye-gaze, switch and motor-access users fewer, bigger buttons. |
 | **Talk with someone** | Builds a page for one conversation partner (Grandpa Joe, a new lab partner). It compares the two taste profiles, searches with both as the signal, and keeps topics with positive affinity in **both** people's age groups. |
 | **Shows its evidence** | Every button has a "why": affinity score, source, age groups, address, Qloo entity id. The agent's steps stream live into the studio. |
 | **Human in the loop** | Favourites the caregiver named go straight in. Every agent suggestion waits for a parent or SLP to keep or remove it. |
@@ -44,6 +46,7 @@ Running the LLM-only control on Maya's note produced mostly restatements of the 
 | Location insights | `GET /v2/insights` (`place`, `filter.location.query`, `filter.tags`) | Real places in the person's city that people with this taste over-index on, filtered for kid-friendliness. |
 | Demographics | `GET /v2/insights` (`urn:demographics`) | Age-group affinity for each topic, which drives "who it lands with" and the bridge scoring. |
 | Compare | `GET /v2/analysis/compare` | The taste themes two people share ("Country, Blues, Folk, Comedy, Family"). |
+| Tag-filtered insights | `GET /v2/insights` with `filter.tags` + taste signal | "Dinosaurs" for *Maya* means The Land Before Time and *We're Back! A Dinosaur's Story*, not just Jurassic Park. |
 | Joint signal | `GET /v2/insights` with both profiles | Candidate topics for a conversation partner, re-ranked by positive affinity in **both** age groups. |
 
 ## Architecture
@@ -62,12 +65,14 @@ flowchart LR
   V --> B[(Board<br/>core words + folders)]
   B --> P[Talk with partner<br/>Qloo compare + joint insights + demographics]
   B --> X[Export .obz]
+  B --> K[Keep it current<br/>Groq tool calling: add_interest, find_places,<br/>remove_buttons, add_phrases → Qloo]
   B --> N[Without-Qloo control<br/>Groq only, checked against Qloo]
 ```
 
 - **Next.js 16** (App Router, TypeScript) on Vercel. Agent runs stream as NDJSON, so the studio shows every step live.
 - **Qloo client** (`src/lib/qloo.ts`): typed wrapper with stable cache keys, an in-memory TTL cache with in-flight de-duplication, timeouts, retry on 429/5xx, and response trimming (`akas` and other verbose fields never reach the LLM).
 - **LLM** (`src/lib/llm.ts`): Groq's OpenAI-compatible API in JSON mode. Falls through `gpt-oss-120b` → `gpt-oss-20b` → `qwen3.8-27b` on rate limits. Every LLM step has a deterministic fallback, so the demo never dead-ends.
+- **Refine agent** (`src/lib/refine.ts`): a bounded tool-calling loop (Groq function calling, up to 4 turns). The model plans; each tool hits Qloo and reports back, so the model can react. The reply shown to the user is built from what the tools actually did, never from the model's own claims.
 - **Agent** (`src/lib/agent.ts`, `src/lib/bridge.ts`): explicit steps with self-correction (widening a search when a name resolves to a non-boardable type, relaxing a too-strict rating filter, trying progressively broader food tags). Candidates go to the LLM under short handles rather than UUIDs, which saves tokens and prevents mangled ids.
 - **Device UI** (`src/components/Device.tsx`): sentence strip, Web Speech output, Fitzgerald-coded core words, picture folders, caregiver review mode.
 - **OBF export** (`src/lib/obf.ts`): root board with fixed core words, linked to one sub-board per folder.
@@ -92,8 +97,9 @@ No Qloo response data is committed to this repository. All Qloo data is fetched 
 2. Tap pictures and core words to hear them spoken and build a sentence. Tap the **info** button on any picture for its Qloo evidence.
 3. Open **Talk with Grandpa Joe** → build. You get the shared themes, both age groups' affinity bars, and a new folder on the board.
 4. Open **Without Qloo** → run the LLM-only control and compare.
-5. Turn on **Caregiver review**, keep or remove suggestions, then **Export (.obz)**.
-6. Try **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
+5. In **"Tastes change"**, tap *"She's obsessed with dinosaurs now"* and watch the tool-calling agent update the board.
+6. Turn on **Caregiver review**, keep or remove suggestions, then **Export (.obz)**.
+7. Try **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
 
 ## Responsible design
 

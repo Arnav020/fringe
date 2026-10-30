@@ -37,13 +37,15 @@ interface Props {
   active: number;
   setActive: (i: number) => void;
   caregiver: boolean;
+  /** Fewer, bigger targets for eye-gaze, switch and motor-access users. */
+  large?: boolean;
   selectedId?: string;
   onInspect: (c: Cell) => void;
   onApprove: (folder: number, id: string) => void;
   onRemove: (folder: number, id: string) => void;
 }
 
-export default function Device({ board, active, setActive, caregiver, selectedId, onInspect, onApprove, onRemove }: Props) {
+export default function Device({ board, active, setActive, caregiver, large = false, selectedId, onInspect, onApprove, onRemove }: Props) {
   const [strip, setStrip] = useState<{ key: string; text: string; image?: string }[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
   const folder = board.folders[active] ?? board.folders[0];
@@ -160,7 +162,7 @@ export default function Device({ board, active, setActive, caregiver, selectedId
             </div>
           )}
 
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+          <div className={`mt-3 grid gap-3 sm:gap-4 ${large ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4"}`}>
             {folder.cells.map((c) => {
               const pending = caregiver && c.status === "suggested";
               const selected = selectedId === c.id;
@@ -191,7 +193,7 @@ export default function Device({ board, active, setActive, caregiver, selectedId
                       )}
                     </div>
                     <div className="px-1 pt-2 pb-0.5">
-                      <div className="line-clamp-2 text-[15px] sm:text-base font-semibold leading-snug text-ink">{c.label}</div>
+                      <div className={`line-clamp-2 font-semibold leading-snug text-ink ${large ? "text-lg sm:text-xl" : "text-[15px] sm:text-base"}`}>{c.label}</div>
                     </div>
                   </button>
                   <button

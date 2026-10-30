@@ -33,6 +33,7 @@ export default function Studio() {
   const [err, setErr] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const [caregiver, setCaregiver] = useState(false);
+  const [large, setLarge] = useState(slug === "leo");
   const [inspect, setInspect] = useState<Cell | null>(null);
   const [tab, setTab] = useState<Tab>("board");
   const [refineTrace, setRefineTrace] = useState<TraceEvent[]>([]);
@@ -77,6 +78,7 @@ export default function Studio() {
     if (ran.current === p.slug) return;
     ran.current = p.slug;
     setCustom(false);
+    setLarge(p.slug === "leo");
     setInput(p);
     build(p);
   }, [slug, build]);
@@ -242,6 +244,22 @@ export default function Studio() {
                   ? `${pending} suggestions are waiting for a parent or SLP to keep or remove. Favourites you named are already in.`
                   : "Everything on the board has been reviewed."}
               </p>
+              <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+                <div>
+                  <div className="text-[14px] font-semibold text-ink">Large targets</div>
+                  <div className="text-[12.5px] text-muted">For eye-gaze, switch and motor access</div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={large}
+                  onClick={() => setLarge((v) => !v)}
+                  className="neu-in-sm relative h-8 w-14 shrink-0 rounded-full p-1"
+                  aria-label="Large targets"
+                >
+                  <span className={`block h-6 w-6 rounded-full shadow transition-transform ${large ? "translate-x-6 bg-accent" : "translate-x-0 bg-white"}`} />
+                </button>
+              </div>
               <button type="button" onClick={() => exportObz(board)} className="neu-btn mt-4 flex h-11 w-full items-center justify-center gap-2 text-[14px] font-semibold text-ink">
                 <Download size={17} /> Export to any AAC app (.obz)
               </button>
@@ -316,6 +334,7 @@ export default function Studio() {
               active={Math.min(active, board.folders.length - 1)}
               setActive={setActive}
               caregiver={caregiver}
+              large={large}
               selectedId={inspect?.id}
               onInspect={setInspect}
               onApprove={(fi, id) => mutateFolder(fi, (f) => ({ ...f, cells: f.cells.map((c) => (c.id === id ? { ...c, status: "approved" } : c)) }))}
