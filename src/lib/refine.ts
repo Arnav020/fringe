@@ -157,7 +157,9 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
           const lists = await Promise.all(
             domains.map(async ([, type]) => {
               for (const t of candidatesTags) {
-                const res = await Q.insights({ type, filterTags: [t.id], entities: seedIds().slice(0, 4), take: 6, ...guards(person.stage, type) }).catch(() => []);
+                const g = guards(person.stage, type);
+                // Keep the age guard's tags AND the theme tag (operator defaults to OR, so try the theme alone first).
+                const res = await Q.insights({ type, ...g, filterTags: [t.id], entities: seedIds().slice(0, 4), take: 6 }).catch(() => []);
                 if (res.length) {
                   tag = t;
                   return res;
