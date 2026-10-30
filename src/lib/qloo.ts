@@ -319,7 +319,7 @@ export const POLITICIAN = "urn:tag:occupation:person:politician";
 
 /** Places that are not somewhere you'd suggest going together: lodging, bars, transit, venues for business. */
 const NOT_A_HANGOUT =
-  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b|drinks|brewery|brewing|tap ?room|tap ?house|winery|wine bar|liquor|beer|cocktail|disney world|school\b|college|university|hospital|clinic|office/i;
+  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b|drinks|brewery|brewing|tap ?room|tap ?house|winery|wine bar|liquor|beer|cocktail|disney world|school\b|college|university|hospital|clinic|office|^target\b|walmart|dollar general|dollar tree|family dollar|five below|costco|walgreens|\bcvs\b|7-eleven|home depot|lowe's|best buy|tj maxx|marshalls|kohl's|gas station|car wash/i;
 /** Unnamed places come back as Google plus codes ("WRMH+9M8"). */
 const PLUS_CODE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}/;
 

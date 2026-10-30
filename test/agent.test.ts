@@ -52,7 +52,7 @@ describe("age guard rails", () => {
 
 describe("places", () => {
   it("drops hotels, bars, taprooms, offices and plus codes", () => {
-    for (const n of ["Hilton Austin", "Lot 46 Music Bar", "Crazy Mountain Tap Room", "Austin Convention Center", "WRMH+9M8"]) expect(isHangout(place(n))).toBe(false);
+    for (const n of ["Hilton Austin", "Lot 46 Music Bar", "Crazy Mountain Tap Room", "Austin Convention Center", "WRMH+9M8", "Target", "Dollar General", "Five Below"]) expect(isHangout(place(n))).toBe(false);
     for (const n of ["Zilker Metropolitan Park", "Deep Eddy Pool", "Amy's Ice Creams"]) expect(isHangout(place(n))).toBe(true);
   });
   it("only suggests outing-type places, with categories by age", () => {
