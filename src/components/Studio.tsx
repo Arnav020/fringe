@@ -379,7 +379,7 @@ export default function Studio() {
 
           {board && tab === "board" && (
             <RefineBar
-              key={board.person.name}
+              key={`refine-${board.person.name}`}
               board={board}
               slug={custom ? "custom" : slug}
               onTrace={(e) => {
@@ -395,7 +395,7 @@ export default function Studio() {
           )}
           {board && tab === "board" && (
             <Device
-              key={board.person.name}
+              key={`device-${board.person.name}`}
               board={board}
               active={Math.min(active, board.folders.length - 1)}
               setActive={setActive}
