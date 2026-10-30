@@ -6,7 +6,7 @@ import { Download, LoaderCircle, Pencil, RotateCcw, ShieldCheck, Sparkles, UserR
 import type { Board, BuildInput, Cell, Folder, FolderKey, TraceEvent } from "@/lib/types";
 import { FOLDER_META } from "@/lib/vocab";
 import { PERSONAS, personaBySlug, type Persona } from "@/lib/personas";
-import { runAgent, store } from "@/lib/client";
+import { boardKey, buildOnce, store } from "@/lib/client";
 import { exportObz } from "@/lib/obf";
 import Device from "./Device";
 import Trace, { upsertTrace } from "./Trace";
@@ -25,7 +25,6 @@ const LANG_NAME: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Mar
 type Tab = "board" | "choose" | "bridge" | "baseline";
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
-const CACHE_VERSION = "v6";
 
 export default function Studio() {
   const params = useSearchParams();
@@ -46,11 +45,11 @@ export default function Studio() {
   const [inspect, setInspect] = useState<Cell | null>(null);
   const [tab, setTab] = useState<Tab>("board");
   const [refineTrace, setRefineTrace] = useState<TraceEvent[]>([]);
+  const [sideTitle, setSideTitle] = useState("Board update · tool-calling agent");
   const ran = useRef<string | null>(null);
   // Each build gets a number; a slower, older build (the persona was switched mid-way) must not overwrite a newer one.
   const latest = useRef(0);
 
-  const cacheKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}|${i.lang ?? ""}`;
 
   const build = useCallback(async (i: BuildInput, force = false) => {
     const run = ++latest.current;
@@ -59,7 +58,7 @@ export default function Studio() {
     setRefineTrace([]);
     setTab("board");
     setActive(0);
-    const cached = !force ? store.get<{ board: Board; trace: TraceEvent[] }>(cacheKey(i)) : null;
+    const cached = !force ? store.get<{ board: Board; trace: TraceEvent[] }>(boardKey(i)) : null;
     if (cached) {
       setBoard(cached.board);
       setTrace(cached.trace);
@@ -71,12 +70,12 @@ export default function Studio() {
     setTrace([]);
     const collected: TraceEvent[] = [];
     try {
-      const b = await runAgent<Board>("/api/build", i, (e) => {
+      const { board: b } = await buildOnce(i, (e) => {
         const next = upsertTrace(collected, e);
         collected.splice(0, collected.length, ...next);
         if (run === latest.current) setTrace(next);
       });
-      store.set(cacheKey(i), { board: b, trace: collected });
+      if (!force) store.set(boardKey(i), { board: b, trace: collected });
       if (run !== latest.current) return;
       setBoard(b);
     } catch (e) {
@@ -100,7 +99,7 @@ export default function Studio() {
 
   // Persist caregiver edits (approve/remove/bridge pages) for this person.
   useEffect(() => {
-    if (board) store.set(cacheKey(input), { board, trace });
+    if (board) store.set(boardKey(input), { board, trace });
   }, [board]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mutateFolder = (fi: number, fn: (f: Folder) => Folder | null) =>
@@ -378,7 +377,10 @@ export default function Studio() {
             <RefineBar
               board={board}
               slug={custom ? "custom" : slug}
-              onTrace={setRefineTrace}
+              onTrace={(e) => {
+                setSideTitle("Board update · tool-calling agent");
+                setRefineTrace(e);
+              }}
               onBoard={(nb) => {
                 setBoard(nb);
                 const i = nb.folders.findIndex((f) => f.cells.some((c) => c.isNew));
@@ -438,6 +440,11 @@ export default function Studio() {
                 return b;
               }}
               onBoard={setBoard}
+              home={home}
+              onTrace={(e) => {
+                setSideTitle("This or that · Qloo picks each pair");
+                setRefineTrace(e);
+              }}
               onDone={() => {
                 setTab("board");
                 const i = board.folders.findIndex((f) => f.cells.some((c) => c.isNew));
@@ -456,7 +463,7 @@ export default function Studio() {
               <>
                 {refineTrace.length > 0 && (
                   <div className="mb-6 border-b border-line pb-5">
-                    <Trace events={refineTrace} title="Board update · tool-calling agent" />
+                    <Trace events={refineTrace} title={sideTitle} />
                   </div>
                 )}
                 <Trace events={trace} stats={board?.stats} />

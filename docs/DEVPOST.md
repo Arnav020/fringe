@@ -32,7 +32,7 @@ A caregiver writes one sentence: *"Loves Bluey, Taylor Swift, Encanto, Minecraft
 - **Human in the loop.** Favourites the caregiver named go straight in. Everything the agent suggests waits in a review queue for a parent or SLP to keep or remove.
 - **Culturally specific, not US-template, in the family's language.** Aarav (12, Mumbai) gets Chhota Bheem, Motu Patlu, Lagaan, Shreya Ghoshal and Shah Rukh Khan, and the cricket grounds near him. One switch speaks the whole board in Hindi, using Qloo's own localised names where it has them. Tell the agent *"he's crazy about Virat Kohli now, find a cricket ground near him"* and it adds Sachin Tendulkar and Rohit Sharma, plus Wankhede Stadium and local gymkhanas.
 - **Access-aware.** "Large targets" mode gives eye-gaze, switch and motor-access users fewer, bigger buttons. It's on by default for Leo, who uses eye-gaze.
-- **Plugs into other agents.** Fringe is an **MCP server** (`/api/mcp`, tools `build_aac_board` and `talk_with_partner`), so Qloo-grounded AAC vocabulary can be wired into agents people already use.
+- **Plugs into other agents.** Fringe is an **MCP server** (`/api/mcp`, tools `build_aac_board`, `this_or_that` and `talk_with_partner`), so Qloo-grounded AAC vocabulary can be wired into agents people already use.
 - **No lock-in.** One-click export to **Open Board Format (.obz)**, the open interchange format for AAC boards.
 - **"Without Qloo", run live.** The same model fills the same board with no taste graph, and every suggestion is checked against Qloo. On Maya's note, 9 of 12 LLM-only suggestions just restate the note, and its local "places" are events that can't be verified. It has no pictures and no audience signal.
 
@@ -59,7 +59,7 @@ The LLM handles language. **Qloo decides what goes on the board**: the curation 
 ## How I built it
 
 - **Next.js 16** (TypeScript, App Router) on **Vercel**. Agent runs stream as NDJSON, so the UI shows each step and endpoint live.
-- **Agents:** a build agent (understand → resolve → expand · localise · map hot-spots · find snacks → read the room → curate → verify → translate), a bridge agent, and a **tool-calling refine agent** (Groq function calling, bounded to 4 turns, with tools `add_interest`, `more_like`, `find_places`, `remove_buttons` and `add_phrases`).
+- **Agents:** a build agent (understand → resolve → expand · localise · map hot-spots · find snacks → read the room → curate → verify → translate), a bridge agent, an adaptive **This or that** loop (each choice becomes the Qloo signal for the next pair; no language model involved), and a **tool-calling refine agent** (Groq function calling, bounded to 4 turns, with tools `add_interest`, `more_like`, `find_places`, `remove_buttons` and `add_phrases`).
 - **Tests:** vitest unit tests for the age guard rails, ESRB filter, place filters, curation handles, core vocabulary and the Open Board Format export, plus an end-to-end check of all four personas against the live API. The reply shown to the user is built from what the tools actually did, never from the model's own claims.
 - **LLM:** Groq (`gpt-oss-120b`, falling back to `gpt-oss-20b` and `qwen3.8-27b`) in JSON mode. Every LLM step has a deterministic fallback, so the demo never dead-ends.
 - **Qloo client:** a typed wrapper with stable cache keys, an in-memory TTL cache with in-flight de-duplication, retries and response trimming.

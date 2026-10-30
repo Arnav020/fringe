@@ -22,6 +22,7 @@ import {
   Languages,
 } from "lucide-react";
 import Nav, { REPO_URL } from "@/components/Nav";
+import Prefetch from "@/components/Prefetch";
 import { PERSONAS } from "@/lib/personas";
 import { FITZGERALD } from "@/lib/vocab";
 
@@ -33,12 +34,13 @@ const STEPS = [
   { icon: Users, title: "Read the room", body: "Checks which age groups each topic lands with, so the board knows Bluey is a parent topic and Sinatra a grandkid one.", api: "urn:demographics" },
   { icon: HeartHandshake, title: "Bridge", body: "For a named partner, compares the two taste profiles and keeps topics both generations score positively and that draw on both people's favourites.", api: "compare · audiences · explainability" },
   { icon: BadgeCheck, title: "Verify", body: "The LLM can only phrase and choose from ids Qloo returned. Anything else is dropped before it reaches the board.", api: "closed-set check" },
-  { icon: MessageSquareText, title: "Keep it current", body: "“She’s into dinosaurs now.” A tool-calling agent turns that into Qloo lookups, or learns from the buttons she actually taps.", api: "Groq tools → Qloo" },
+  { icon: MessageSquareText, title: "Keep it current", body: "“She’s into dinosaurs now.” A tool-calling agent turns that into Qloo lookups. Or let her choose: This or that shows two Qloo pictures and follows what she reaches for.", api: "Groq tools · choices as signal" },
 ];
 
 export default function Home() {
   return (
     <main className="flex-1 overflow-x-hidden">
+      <Prefetch input={{ name: PERSONAS[0].name, age: PERSONAS[0].age, city: PERSONAS[0].city, likes: PERSONAS[0].likes, about: PERSONAS[0].about, lang: PERSONAS[0].lang }} />
       <Nav />
 
       {/* Hero */}

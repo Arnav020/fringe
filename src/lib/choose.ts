@@ -1,7 +1,7 @@
 import "server-only";
 import * as Q from "./qloo";
-import { TEMPLATE, TYPE_TO_FOLDER, guards, shortName, suitable } from "./agent";
-import type { Cell, Person } from "./types";
+import { LANG_TEMPLATE, TEMPLATE, TYPE_TO_FOLDER, guards, shortName, suitable } from "./agent";
+import type { Cell, Person, TraceEvent } from "./types";
 
 /**
  * "This or that": find out what someone loves by letting them choose.
@@ -30,12 +30,26 @@ export interface ChooseRound {
   pair: Cell[];
   /** One line on why these two, for the caregiver. */
   reason: string;
+  /** "Miraculous, or Onward?" in English, and in the family's language when they have one. */
+  ask: string;
+  askAlt?: string;
+  /** What the agent did this round, for the studio's trace panel. */
+  trace: TraceEvent;
 }
 
-function toCell(e: Q.QlooEntity, why: string): Cell {
+const ASK: Record<string, (a: string, b: string) => string> = {
+  hi: (a, b) => `${a} या ${b}?`,
+  es: (a, b) => `¿${a} o ${b}?`,
+};
+
+function toCell(e: Q.QlooEntity, why: string, lang?: string): Cell {
   const label = shortName(e.name);
   const key = TYPE_TO_FOLDER[String(e.type)] ?? "shows";
+  // Same home-language treatment as the board: Qloo's localised name, the folder's phrase pattern.
+  const tpl = lang ? LANG_TEMPLATE[lang] : undefined;
+  const altLabel = (lang && e.names?.[lang]) || label;
   return {
+    alt: tpl ? { label: altLabel, say: (tpl[key] ?? tpl.seed!)(altLabel) } : undefined,
     id: e.id,
     label,
     say: (TEMPLATE[key] ?? TEMPLATE.shows)(label),
@@ -51,6 +65,7 @@ function toCell(e: Q.QlooEntity, why: string): Cell {
 }
 
 export async function nextPair(input: ChooseInput): Promise<ChooseRound> {
+  const t0 = Date.now();
   const { person, seeds, history } = input;
   // Only real Qloo ids: one malformed id in filter.exclude.entities makes Qloo reject the whole request.
   const isId = (x: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
@@ -86,11 +101,23 @@ export async function nextPair(input: ChooseInput): Promise<ChooseRound> {
 
   const lastLabel = lastPick ? "what they picked" : "their favourites";
 
+  const pair = [
+    toCell(a, `More like ${lastLabel} (Qloo affinity ${a.affinity?.toFixed(2) ?? "—"}).`, person.lang),
+    toCell(b, `Something different from their wider taste: a ${String(b.type).replace("_", " ")} (Qloo affinity ${b.affinity?.toFixed(2) ?? "—"}).`, person.lang),
+  ];
+  const kind = (x: string) => x.replace("_", " ").replace("videogame", "game").replace("artist", "artist");
   return {
-    pair: [
-      toCell(a, `More like ${lastLabel} (Qloo affinity ${a.affinity?.toFixed(2) ?? "—"}).`),
-      toCell(b, `Something different from their wider taste: a ${String(b.type).replace("_", " ")} (Qloo affinity ${b.affinity?.toFixed(2) ?? "—"}).`),
-    ],
+    pair,
+    ask: `${pair[0].label}, or ${pair[1].label}?`,
+    askAlt: person.lang && ASK[person.lang] ? ASK[person.lang](pair[0].alt?.label ?? pair[0].label, pair[1].alt?.label ?? pair[1].label) : undefined,
+    trace: {
+      id: `choose-${history.length + 1}`,
+      label: `Round ${history.length + 1}: choosing the next pair`,
+      endpoint: "GET /v2/insights × 2 · choices as the signal",
+      status: "done",
+      detail: `${kind(String(a.type))} like ${picks.length ? "their picks" : "their favourites"} → ${a.name} · ${kind(String(b.type))} from their wider taste → ${b.name}`,
+      ms: Date.now() - t0,
+    },
     reason: picks.length
       ? `One more like what they've been choosing, and one ${String(b.type).replace("_", " ")} to see if their taste reaches further.`
       : `One like their favourites, and one ${String(b.type).replace("_", " ")} from the same taste profile.`,

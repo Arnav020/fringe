@@ -3,13 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Hand, LoaderCircle, RotateCcw, Shuffle, Volume2 } from "lucide-react";
 import type { Board, Cell } from "@/lib/types";
-import { runAgent, speak } from "@/lib/client";
+import { runAgent, speak, usage } from "@/lib/client";
+import type { TraceEvent } from "@/lib/types";
 
 const ROUNDS = 6;
 
 interface Round {
   pair: Cell[];
   reason: string;
+  ask: string;
+  askAlt?: string;
+  trace: TraceEvent;
 }
 
 interface Props {
@@ -18,13 +22,26 @@ interface Props {
   onAdd: (picks: { cell: Cell; over: string }[]) => Board;
   onBoard: (b: Board) => void;
   onDone: () => void;
+  /** Speak and label in the family's language, like the board does. */
+  home?: boolean;
+  /** Each round's Qloo work, shown in the studio's agent panel. */
+  onTrace?: (events: TraceEvent[]) => void;
 }
 
 /**
  * "This or that": a paired-choice preference session. Two pictures from Qloo at a time; the person
  * chooses; the next pair adapts to what they chose. For people who can't tell anyone what they like.
  */
-export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
+export default function ChoosePanel({ board, onAdd, onBoard, onDone, home = false, onTrace }: Props) {
+  const lang = home && board.person.lang ? board.person.lang : "en";
+  const traces = useRef<TraceEvent[]>([]);
+  const label = (c: Cell) => (lang !== "en" && c.alt?.label ? c.alt.label : c.label);
+  const ask = (r: Round) => (lang !== "en" && r.askAlt ? speak(r.askAlt, lang) : speak(r.ask));
+  // The latest language choice and trace sink, without restarting the session when they change.
+  const live = useRef({ ask, onTrace });
+  useEffect(() => {
+    live.current = { ask, onTrace };
+  });
   const [round, setRound] = useState<Round | null>(null);
   const [history, setHistory] = useState<{ shown: string[]; picked?: string; pickedType?: string }[]>([]);
   const [picks, setPicks] = useState<{ cell: Cell; over: string }[]>([]);
@@ -53,7 +70,9 @@ export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
         const j = await res.json();
         if (!res.ok) throw new Error(j.error || "Couldn't load the next pair.");
         setRound(j);
-        speak(`${j.pair[0].label}, or ${j.pair[1].label}?`);
+        traces.current = [...traces.current, j.trace];
+        live.current.onTrace?.(traces.current);
+        live.current.ask(j);
       } catch (e) {
         setErr((e as Error).message);
       } finally {
@@ -74,7 +93,8 @@ export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
     if (!round || busy || chosen) return;
     const other = round.pair.find((x) => x.id !== c?.id);
     if (c) {
-      speak(c.label);
+      speak(label(c), lang);
+      if (c.entityId) usage.tap(board.person.name, c.entityId, c.label);
       setChosen(c.id);
       setPicks((p) => [...p, { cell: c, over: other?.label ?? "" }]);
     }
@@ -84,6 +104,7 @@ export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
   };
 
   const restart = () => {
+    traces.current = [];
     setHistory([]);
     setPicks([]);
     setAdded(null);
@@ -144,12 +165,12 @@ export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
                   onClick={() => choose(c)}
                   disabled={busy || !!chosen}
                   className={`key rise p-2 sm:p-3 text-left transition ${chosen === c.id ? "ring-4 ring-accent" : chosen ? "opacity-40" : ""}`}
-                  aria-label={`Choose ${c.label}`}
+                  aria-label={`Choose ${label(c)}`}
                 >
                   <div className="aspect-square overflow-hidden rounded-[14px] bg-bg-deep">
                     <img src={c.image} alt="" className="h-full w-full object-cover" />
                   </div>
-                  <div className="px-1 pt-3 pb-1 text-lg sm:text-2xl font-semibold leading-tight text-ink">{c.label}</div>
+                  <div className="px-1 pt-3 pb-1 text-lg sm:text-2xl font-semibold leading-tight text-ink">{label(c)}</div>
                   <div className="px-1 pb-1 text-[12.5px] text-muted">{c.why}</div>
                 </button>
               ) : (
@@ -162,7 +183,7 @@ export default function ChoosePanel({ board, onAdd, onBoard, onDone }: Props) {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-[13px] text-muted">{round?.reason}</p>
             <div className="flex gap-2">
-              <button type="button" disabled={!round || busy} onClick={() => round && speak(`${round.pair[0].label}, or ${round.pair[1].label}?`)} className="neu-btn flex h-10 items-center gap-1.5 px-3 text-[13px] font-semibold text-ink-2">
+              <button type="button" disabled={!round || busy} onClick={() => round && ask(round)} className="neu-btn flex h-10 items-center gap-1.5 px-3 text-[13px] font-semibold text-ink-2">
                 <Volume2 size={15} /> Ask again
               </button>
               <button type="button" disabled={!round || busy || !!chosen} onClick={() => choose(null)} className="neu-btn flex h-10 items-center gap-1.5 px-3 text-[13px] font-semibold text-ink-2">

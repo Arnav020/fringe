@@ -1,5 +1,6 @@
 import { buildBoard } from "@/lib/agent";
 import { buildBridge } from "@/lib/bridge";
+import { nextPair } from "@/lib/choose";
 import { rateLimited } from "@/lib/server/stream";
 import type { Board } from "@/lib/types";
 
@@ -35,6 +36,25 @@ const TOOLS = [
     },
   },
   {
+    name: "this_or_that",
+    description:
+      "Next round of a paired-choice preference session, for someone who can't say what they like: returns two pictures from Qloo, one more like what they picked so far and one from a different domain of their taste. Call again with the growing history after each choice.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        age: { type: "number" },
+        seeds: { type: "array", description: "Favourites' Qloo ids and types from build_aac_board", items: { type: "object", properties: { id: { type: "string" }, type: { type: "string" } } } },
+        history: {
+          type: "array",
+          description: "Earlier rounds: the two ids shown and the id picked (omit picked for 'neither')",
+          items: { type: "object", properties: { shown: { type: "array", items: { type: "string" } }, picked: { type: "string" }, pickedType: { type: "string" } } },
+        },
+      },
+      required: ["name", "age", "seeds"],
+    },
+  },
+  {
     name: "talk_with_partner",
     description:
       "Find conversation topics an AAC user and a specific partner (e.g. a grandparent or classmate) can both enjoy, using Qloo taste comparison and age-group affinity. Requires the user's favourite Qloo entity ids from build_aac_board.",
@@ -53,6 +73,8 @@ const TOOLS = [
     },
   },
 ];
+
+type ChooseHistory = { shown: string[]; picked?: string; pickedType?: string }[];
 
 type Rpc = { jsonrpc: "2.0"; id?: string | number | null; method: string; params?: Record<string, unknown> };
 
@@ -88,6 +110,17 @@ async function handle(msg: Rpc) {
           if (!String(a.likes ?? "").trim()) return ok(msg.id, { content: [{ type: "text", text: "Missing 'likes': list a few things they love, e.g. \"Bluey, Taylor Swift, Minecraft, pizza\"." }], isError: true });
           const board = await buildBoard({ name: String(a.name ?? ""), age: Number(a.age) || 10, city: String(a.city ?? ""), likes: String(a.likes ?? ""), lang: a.lang ? String(a.lang).slice(0, 2) : undefined }, noop);
           return ok(msg.id, { content: [{ type: "text", text: summarise(board) }], structuredContent: board });
+        }
+        if (name === "this_or_that") {
+          if (!Array.isArray(a.seeds) || !a.seeds.length) return ok(msg.id, { content: [{ type: "text", text: "Needs 'seeds' (favourites' Qloo ids and types from build_aac_board)." }], isError: true });
+          const age = Number(a.age) || 10;
+          const round = await nextPair({
+            person: { name: String(a.name ?? ""), age, city: "", stage: age < 13 ? "child" : age < 20 ? "teen" : age < 65 ? "adult" : "older" },
+            seeds: (a.seeds as { id: string; type: string }[]).slice(0, 8),
+            history: (Array.isArray(a.history) ? a.history : []).slice(-12) as ChooseHistory,
+          });
+          const text = `${round.ask}\n${round.pair.map((c) => `${c.label} (${c.entityType}, id ${c.entityId}): ${c.why}`).join("\n")}\n${round.reason}`;
+          return ok(msg.id, { content: [{ type: "text", text }], structuredContent: round });
         }
         if (name === "talk_with_partner") {
           if (!String(a.partnerLikes ?? "").trim() || !Array.isArray(a.seeds) || !a.seeds.length)

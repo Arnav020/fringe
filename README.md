@@ -82,6 +82,8 @@ flowchart LR
   V --> B[(Board<br/>core words + folders)]
   B --> P[Talk with partner<br/>Qloo compare + joint insights + audiences<br/>+ explainability + demographics]
   B --> X[Export .obz]
+  B --> T[This or that<br/>Qloo pairs: picks as signal,<br/>another domain for range]
+  T --> B
   B --> K[Keep it current<br/>Groq tool calling: add_interest, more_like,<br/>find_places, remove_buttons, add_phrases → Qloo]
   B --> N[Without-Qloo control<br/>Groq only, checked against Qloo]
 ```
@@ -106,6 +108,7 @@ claude mcp add --transport http fringe https://fringe-aac.vercel.app/api/mcp
 |---|---|
 | `build_aac_board(name, age, city, likes)` | Runs the full build agent and returns the board: a text summary for the model, plus the full board as `structuredContent`. |
 | `talk_with_partner(..., partnerName, partnerAge, partnerLikes)` | Runs the bridge agent for a specific conversation partner. |
+| `this_or_that(name, age, seeds, history)` | The next pair of a paired-choice session: one picture more like what they picked, one from another domain of their taste. |
 
 ## Tests
 

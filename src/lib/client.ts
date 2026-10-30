@@ -1,6 +1,6 @@
 "use client";
 
-import type { TraceEvent } from "./types";
+import type { Board, BuildInput, TraceEvent } from "./types";
 
 /** Speak with the device's own voice (no network, works offline once loaded). `lang` is a primary tag like "hi". */
 export function speak(text: string, lang = "en") {
@@ -95,3 +95,46 @@ export const usage = {
       .map(([id, v]) => ({ id, ...v }));
   },
 };
+
+/* ---------- one build per board, shared between the landing page and the studio ---------- */
+
+const CACHE_VERSION = "v6";
+export const boardKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}|${i.lang ?? ""}`;
+
+type Built = { board: Board; trace: TraceEvent[] };
+const inflight = new Map<string, { promise: Promise<Built>; events: TraceEvent[]; listeners: Set<(e: TraceEvent) => void> }>();
+
+/**
+ * Build a board, or join a build of the same board that's already running (the landing page warms up
+ * Maya's board in the background, so the studio opens instantly instead of starting a second agent run).
+ */
+export function buildOnce(input: BuildInput, onTrace: (e: TraceEvent) => void): Promise<Built> {
+  const key = boardKey(input);
+  let run = inflight.get(key);
+  if (!run) {
+    const events: TraceEvent[] = [];
+    const listeners = new Set<(e: TraceEvent) => void>();
+    const promise = runAgent<Board>("/api/build", input, (e) => {
+      events.push(e);
+      listeners.forEach((l) => l(e));
+    })
+      .then((board) => {
+        // Keep the last state of each step, as the studio shows it.
+        const trace: TraceEvent[] = [];
+        for (const e of events) {
+          const i = trace.findIndex((x) => x.id === e.id);
+          if (i >= 0) trace[i] = { ...trace[i], ...e };
+          else trace.push(e);
+        }
+        store.set(key, { board, trace });
+        return { board, trace };
+      })
+      .finally(() => inflight.delete(key));
+    run = { promise, events, listeners };
+    inflight.set(key, run);
+  } else {
+    run.events.forEach(onTrace);
+  }
+  run.listeners.add(onTrace);
+  return run.promise.finally(() => run!.listeners.delete(onTrace));
+}

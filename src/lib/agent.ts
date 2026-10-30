@@ -692,7 +692,7 @@ async function curate(
 export const LANG_NAME: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Marathi", ta: "Tamil", bn: "Bengali" };
 
 /** Phrase patterns per folder, used when the model can't translate (rate limits): the board still speaks the family's language. */
-const LANG_TEMPLATE: Record<string, Partial<Record<FolderKey | "seed", (n: string) => string>>> = {
+export const LANG_TEMPLATE: Record<string, Partial<Record<FolderKey | "seed", (n: string) => string>>> = {
   hi: {
     seed: (n) => `मुझे ${n} बहुत पसंद है!`,
     shows: (n) => `क्या हम ${n} देख सकते हैं?`,
