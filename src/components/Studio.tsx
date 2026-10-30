@@ -415,17 +415,17 @@ export default function Studio() {
           )}
           {board && tab === "bridge" && (
             <BridgePanel
-              key={board.person.name + partnerDefaults.name}
+              key={`bridge-${board.person.name}-${partnerDefaults.name}`}
               board={board}
               defaults={partnerDefaults}
               onFolder={addBridge}
               onOpen={() => setTab("board")}
             />
           )}
-          {board && tab === "baseline" && <BaselinePanel key={board.person.name} board={board} input={input} />}
+          {board && tab === "baseline" && <BaselinePanel key={`baseline-${board.person.name}`} board={board} input={input} />}
           {board && tab === "choose" && (
             <ChoosePanel
-              key={board.person.name}
+              key={`choose-${board.person.name}`}
               board={board}
               onAdd={(picks) => {
                 // What they chose goes straight in: chosen by the person, not guessed by anyone.
