@@ -1,10 +1,10 @@
 import "server-only";
-import { cacheLife } from "next/cache";
+import { memo } from "./server/memo";
 
 /**
  * Groq chat client (OpenAI-compatible). The free tier allows ~8K tokens/min
  * *per model*, so we walk a chain of models on 429s and keep prompts lean.
- * Results are cached remotely by prompt, so repeat boards cost nothing.
+ * Results are cached in memory by prompt, so repeat boards cost nothing.
  */
 
 const MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
@@ -40,9 +40,11 @@ async function callModel(model: string, messages: ChatMessage[], maxTokens: numb
   return JSON.parse(text.replace(/^```(json)?|```$/g, "").trim());
 }
 
-async function cachedJson(messages: ChatMessage[], maxTokens: number): Promise<{ model: string; json: unknown }> {
-  "use cache: remote";
-  cacheLife("days");
+function cachedJson(messages: ChatMessage[], maxTokens: number): Promise<{ model: string; json: unknown }> {
+  return memo(`llm:${maxTokens}:${JSON.stringify(messages)}`, 24 * 3600_000, () => firstModel(messages, maxTokens));
+}
+
+async function firstModel(messages: ChatMessage[], maxTokens: number): Promise<{ model: string; json: unknown }> {
   const errors: string[] = [];
   for (const model of MODELS) {
     try {

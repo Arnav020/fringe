@@ -1,13 +1,13 @@
 import "server-only";
-import { cacheLife } from "next/cache";
+import { memo } from "./server/memo";
 
 /**
  * Thin, typed client for the Qloo hackathon API.
  *
  * - Every call is a GET with query-string params (per the hackathon guide).
- * - Successful responses are cached remotely ('use cache: remote') so repeat
- *   boards are instant and we stay well inside rate limits. Errors throw and
- *   are therefore never cached.
+ * - Successful responses are cached in memory for a day (private server-side
+ *   caching is allowed by the hackathon terms), so repeat boards are instant
+ *   and we stay inside rate limits. Errors are never cached.
  * - Responses are trimmed to the handful of fields the agent needs.
  */
 
@@ -47,9 +47,11 @@ export class QlooError extends Error {
   }
 }
 
-async function rawGet(path: string, query: string): Promise<unknown> {
-  "use cache: remote";
-  cacheLife("days");
+function rawGet(path: string, query: string): Promise<unknown> {
+  return memo(`q:${path}?${query}`, 24 * 3600_000, () => fetchQloo(path, query));
+}
+
+async function fetchQloo(path: string, query: string): Promise<unknown> {
   const key = process.env.QLOO_API_KEY;
   if (!key) throw new QlooError(500, "QLOO_API_KEY is not set");
   const res = await fetch(`${BASE}${path}?${query}`, {
