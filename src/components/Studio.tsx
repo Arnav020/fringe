@@ -333,7 +333,11 @@ export default function Studio() {
                 aria-selected={tab === k}
                 data-active={tab === k}
                 disabled={!board}
-                onClick={() => setTab(k)}
+                onClick={() => {
+                  // The side panel follows the current task; another tab's run doesn't linger there.
+                  if (k !== tab) setRefineTrace([]);
+                  setTab(k);
+                }}
                 className={`neu-btn h-11 px-4 text-[15px] font-semibold disabled:opacity-50 ${tab === k ? "text-accent" : "text-ink-2"}`}
               >
                 {l}
@@ -375,6 +379,7 @@ export default function Studio() {
 
           {board && tab === "board" && (
             <RefineBar
+              key={board.person.name}
               board={board}
               slug={custom ? "custom" : slug}
               onTrace={(e) => {
