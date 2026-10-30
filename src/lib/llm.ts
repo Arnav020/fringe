@@ -69,3 +69,48 @@ export async function chatJson<T>(
     return null;
   }
 }
+
+/* ---------- tool calling (for the refine agent) ---------- */
+
+export interface ToolDef {
+  type: "function";
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}
+
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
+export type AgentMessage =
+  | { role: "system" | "user"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls?: ToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
+
+/** One agent turn with tools. Walks the model chain on errors/rate limits. */
+export async function chatTools(messages: AgentMessage[], tools: ToolDef[], maxTokens = 700) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new LlmError("GROQ_API_KEY is not set");
+  const errors: string[] = [];
+  for (const model of MODELS) {
+    const body: Record<string, unknown> = { model, messages, tools, tool_choice: "auto", max_tokens: maxTokens, temperature: 0.2 };
+    if (model.startsWith("openai/gpt-oss")) body.reasoning_effort = "low";
+    if (model.startsWith("qwen/")) body.reasoning_effort = "none";
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(25000),
+      });
+      if (!res.ok) throw new LlmError(`${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const data = await res.json();
+      const msg = data.choices?.[0]?.message ?? {};
+      return { model, content: (msg.content as string | null) ?? null, toolCalls: (msg.tool_calls as ToolCall[] | undefined) ?? [] };
+    } catch (e) {
+      errors.push(String((e as Error).message));
+    }
+  }
+  throw new LlmError(errors.join(" | "));
+}

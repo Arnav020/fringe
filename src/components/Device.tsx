@@ -181,6 +181,9 @@ export default function Device({ board, active, setActive, caregiver, selectedId
                           <span className="display text-5xl text-[#5b2a12]">{c.label.slice(0, 1)}</span>
                         </div>
                       )}
+                      {c.isNew && (
+                        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm">New</span>
+                      )}
                       {c.kind === "seed" && (
                         <span className="absolute left-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-accent shadow-sm" title="A favourite you told us about">
                           <Heart size={15} fill="currentColor" />

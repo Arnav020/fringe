@@ -28,7 +28,7 @@ const DOMAINS: { key: FolderKey; type: Q.EntityType }[] = [
   { key: "books", type: "book" },
 ];
 
-const KIND_TO_TYPE: Record<string, Q.EntityType | undefined> = {
+export const KIND_TO_TYPE: Record<string, Q.EntityType | undefined> = {
   tv_show: "tv_show",
   show: "tv_show",
   movie: "movie",
@@ -45,7 +45,7 @@ const KIND_TO_TYPE: Record<string, Q.EntityType | undefined> = {
   person: "person",
 };
 
-const TYPE_TO_FOLDER: Record<string, FolderKey | undefined> = {
+export const TYPE_TO_FOLDER: Record<string, FolderKey | undefined> = {
   tv_show: "shows",
   movie: "movies",
   artist: "music",
@@ -167,7 +167,7 @@ async function resolve(parsed: Parsed, t: Tracer): Promise<Seed[]> {
 /* 3. Expand: cross-domain taste, with age-appropriate guard rails     */
 /* ------------------------------------------------------------------ */
 
-function guards(stage: Person["stage"], type: Q.EntityType): Partial<Q.InsightOptions> {
+export function guards(stage: Person["stage"], type: Q.EntityType): Partial<Q.InsightOptions> {
   if (stage === "child") {
     if (type === "movie") return { contentRating: "G,PG" };
     if (type === "tv_show") return { contentRating: "TV-Y,TV-Y7,TV-G,TV-PG" };
@@ -314,7 +314,7 @@ interface Curated {
   quick: Record<string, string[]>;
 }
 
-const TEMPLATE: Record<string, (n: string) => string> = {
+export const TEMPLATE: Record<string, (n: string) => string> = {
   shows: (n) => `Can we watch ${n}?`,
   movies: (n) => `I want to watch ${n}`,
   music: (n) => `Play ${n}!`,
@@ -399,7 +399,7 @@ function topAges(d?: Q.Demographic) {
 }
 
 /** "Spider-Man: Across the Spider-Verse" → "Across the Spider-Verse"; drops "(2019)" etc. */
-function shortName(name: string) {
+export function shortName(name: string) {
   let n = name.replace(/\s*\(.*?\)\s*/g, " ").trim();
   const [head, tail] = n.split(/:\s+/, 2);
   if (tail) n = tail.split(" ").length <= 4 ? tail : head;

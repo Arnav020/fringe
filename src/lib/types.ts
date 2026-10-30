@@ -22,6 +22,8 @@ export interface Cell {
   address?: string;
   /** Bridge cells: Qloo age affinity for the AAC user's and the partner's age groups. */
   pair?: { user: number; partner: number };
+  /** Added by the most recent board update. */
+  isNew?: boolean;
   status: "approved" | "suggested";
 }
 

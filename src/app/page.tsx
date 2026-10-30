@@ -6,6 +6,7 @@ import {
   Fingerprint,
   HeartHandshake,
   Lock,
+  MessageSquareText,
   MapPin,
   Music2,
   Search,
@@ -30,6 +31,7 @@ const STEPS = [
   { icon: Users, title: "Read the room", body: "Checks which age groups each topic lands with, so the board knows Bluey is a parent topic and Sinatra a grandkid one.", api: "urn:demographics" },
   { icon: HeartHandshake, title: "Bridge", body: "For a named partner, compares the two taste profiles and keeps topics both generations score positively.", api: "GET /v2/analysis/compare" },
   { icon: BadgeCheck, title: "Verify", body: "The LLM can only phrase and choose from ids Qloo returned. Anything else is dropped before it reaches the board.", api: "closed-set check" },
+  { icon: MessageSquareText, title: "Keep it current", body: "“She’s into dinosaurs now.” A tool-calling agent turns that into Qloo lookups: a dinosaur tag filtered by her taste, swimming pools nearby.", api: "Groq tools → Qloo" },
 ];
 
 export default function Home() {
@@ -164,7 +166,7 @@ export default function Home() {
         </p>
         <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((s, i) => (
-            <li key={s.title} className={`neu p-5 ${i === 6 ? "sm:col-span-2 lg:col-span-1" : ""}`}>
+            <li key={s.title} className="neu p-5">
               <div className="flex items-center justify-between">
                 <span className="neu-in-sm grid h-11 w-11 place-items-center text-accent">
                   <s.icon size={19} />

@@ -12,11 +12,12 @@ import Trace, { upsertTrace } from "./Trace";
 import Evidence from "./Evidence";
 import BridgePanel from "./BridgePanel";
 import BaselinePanel from "./BaselinePanel";
+import RefineBar from "./RefineBar";
 
 type Tab = "board" | "bridge" | "baseline";
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 
 export default function Studio() {
   const params = useSearchParams();
@@ -34,6 +35,7 @@ export default function Studio() {
   const [caregiver, setCaregiver] = useState(false);
   const [inspect, setInspect] = useState<Cell | null>(null);
   const [tab, setTab] = useState<Tab>("board");
+  const [refineTrace, setRefineTrace] = useState<TraceEvent[]>([]);
   const ran = useRef<string | null>(null);
 
   const cacheKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}`;
@@ -41,6 +43,7 @@ export default function Studio() {
   const build = useCallback(async (i: BuildInput, force = false) => {
     setErr(null);
     setInspect(null);
+    setRefineTrace([]);
     setTab("board");
     setActive(0);
     const cached = !force ? store.get<{ board: Board; trace: TraceEvent[] }>(cacheKey(i)) : null;
@@ -296,6 +299,18 @@ export default function Studio() {
           )}
 
           {board && tab === "board" && (
+            <RefineBar
+              board={board}
+              slug={custom ? "custom" : slug}
+              onTrace={setRefineTrace}
+              onBoard={(nb) => {
+                setBoard(nb);
+                const i = nb.folders.findIndex((f) => f.cells.some((c) => c.isNew));
+                if (i >= 0) setActive(i);
+              }}
+            />
+          )}
+          {board && tab === "board" && (
             <Device
               board={board}
               active={Math.min(active, board.folders.length - 1)}
@@ -327,7 +342,18 @@ export default function Studio() {
         {/* Right: the agent's reasoning */}
         <aside className="order-3 lg:order-none lg:col-span-2 xl:col-span-1">
           <div className="neu p-5 xl:sticky xl:top-6">
-            {inspect ? <Evidence cell={inspect} onClose={() => setInspect(null)} /> : <Trace events={trace} stats={board?.stats} />}
+            {inspect ? (
+              <Evidence cell={inspect} onClose={() => setInspect(null)} />
+            ) : (
+              <>
+                {refineTrace.length > 0 && (
+                  <div className="mb-6 border-b border-line pb-5">
+                    <Trace events={refineTrace} title="Board update · tool-calling agent" />
+                  </div>
+                )}
+                <Trace events={trace} stats={board?.stats} />
+              </>
+            )}
             {!inspect && board && (
               <p className="mt-5 flex items-start gap-2 rounded-2xl bg-white/50 p-3 text-[12.5px] leading-relaxed text-muted">
                 <Sparkles size={15} className="mt-0.5 shrink-0 text-accent" />
