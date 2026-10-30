@@ -26,12 +26,12 @@ import { FITZGERALD } from "@/lib/vocab";
 const STEPS = [
   { icon: Wand2, title: "Understand", body: "Reads one sentence from a parent or SLP and pulls out the shows, songs, games, books, foods and places.", api: "Groq · gpt-oss-120b" },
   { icon: Search, title: "Resolve", body: "Finds each favourite in Qloo's 250M-entity taste graph, with a real picture for the button.", api: "GET /search" },
-  { icon: Sparkles, title: "Expand", body: "Follows taste across domains: Bluey → Peppa Pig, Frozen II, Olivia Rodrigo. Age-rated for kids.", api: "GET /v2/insights × 5" },
-  { icon: MapPin, title: "Localise", body: "Real places in their city that people with this taste over-index on, plus where to get their favourite food.", api: "GET /v2/tags · insights(place)" },
+  { icon: Sparkles, title: "Expand", body: "Follows taste across domains: Bluey → Charlie and Lola, Frozen II, Olivia Rodrigo. Explainability says which favourite led to each pick. Age-rated for kids.", api: "GET /v2/insights × 6 · explainability" },
+  { icon: MapPin, title: "Localise", body: "A heatmap of where their kind of taste lives in their city, then parks, pools and museums inside those hot-spots, snacks they'd ask for, and where to eat their favourite food.", api: "urn:heatmap · geohash · brand · tags" },
   { icon: Users, title: "Read the room", body: "Checks which age groups each topic lands with, so the board knows Bluey is a parent topic and Sinatra a grandkid one.", api: "urn:demographics" },
-  { icon: HeartHandshake, title: "Bridge", body: "For a named partner, compares the two taste profiles and keeps topics both generations score positively.", api: "GET /v2/analysis/compare" },
+  { icon: HeartHandshake, title: "Bridge", body: "For a named partner, compares the two taste profiles and keeps topics both generations score positively and that draw on both people's favourites.", api: "compare · audiences · explainability" },
   { icon: BadgeCheck, title: "Verify", body: "The LLM can only phrase and choose from ids Qloo returned. Anything else is dropped before it reaches the board.", api: "closed-set check" },
-  { icon: MessageSquareText, title: "Keep it current", body: "“She’s into dinosaurs now.” A tool-calling agent turns that into Qloo lookups: a dinosaur tag filtered by her taste, swimming pools nearby.", api: "Groq tools → Qloo" },
+  { icon: MessageSquareText, title: "Keep it current", body: "“She’s into dinosaurs now.” A tool-calling agent turns that into Qloo lookups, or learns from the buttons she actually taps.", api: "Groq tools → Qloo" },
 ];
 
 export default function Home() {
@@ -61,7 +61,7 @@ export default function Home() {
               Build your own
             </Link>
           </div>
-          <p className="mt-5 text-[13.5px] text-muted">Live agent · 7 Qloo capabilities · exports to Open Board Format · no account, nothing stored</p>
+          <p className="mt-5 text-[13.5px] text-muted">Live agent · 10 Qloo capabilities · exports to Open Board Format · no account, nothing stored</p>
         </div>
 
         {/* Before / after */}
@@ -114,14 +114,16 @@ export default function Home() {
 
       {/* Problem */}
       <section className="mx-auto mt-24 w-full max-w-[1240px] px-4 sm:px-6">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {[
             ["~4 million", "Americans can't reliably meet daily communication needs with their own speech.", "Beukelman & Mirenda, via the National Academies (2017)"],
             ["#1", "reason adults communicate is social closeness, ahead of information, etiquette or needs.", "Light's purposes of communicative interaction"],
             ["By hand", "is how personal “fringe” vocabulary gets added today: one button at a time, by a parent or SLP, and it goes stale.", "AAC practice guidance (AssistiveWare, PrAACtical AAC)"],
+            ["Stale", "systems and poor fit are among the factors 275 AAC specialists most linked to people abandoning AAC.", "Johnson, Inglebret, Jones & Ray, AAC 22(2), 2006"],
+            ["Western", "norms shape most AAC practice; therapists have asked for country-specific tiles since 2022.", "Kulkarni & Parmar, AAC 33, 2017 · cboard#1267"],
           ].map(([big, body, src]) => (
             <div key={big} className="neu p-6 sm:p-7">
-              <div className="display text-5xl text-accent">{big}</div>
+              <div className="display text-[42px] leading-none text-accent">{big}</div>
               <p className="mt-3 text-[16px] leading-relaxed text-ink-2">{body}</p>
               <p className="mt-4 text-[12px] text-muted">{src}</p>
             </div>
@@ -197,9 +199,11 @@ export default function Home() {
           <div className="grid gap-3">
             {[
               ["A recognisable picture for every button", "Pre-literate kids and people with aphasia navigate by image, not text."],
-              ["Places that exist, near them", "Addresses in their own city, matched to their taste profile, not a guess."],
+              ["Places that exist, near them", "A Qloo heatmap finds where their kind of taste lives; real parks, pools and museums inside those areas, not a guess."],
+              ["A reason for every suggestion", "Qloo explainability: “Wings of Fire, because she loves Bluey (35%) and Minecraft (30%).”"],
               ["Who a topic will land with", "Qloo demographics: talk Bluey with parents, Sinatra with the grandkids."],
-              ["Common ground with a specific person", "Compare + joint signals find what an 8-year-old and a 68-year-old both love."],
+              ["Common ground with a specific person", "Compare + joint signals find what an 8-year-old and a 68-year-old both love: The Waltons draws 55% on Maya's favourites, 45% on Grandpa's."],
+              ["Their family's language", "Hindi phrases for Aarav in Mumbai, with Qloo's own localised names, and a culturally specific board."],
             ].map(([t, b]) => (
               <div key={t} className="neu-in-sm flex gap-3 p-4">
                 <BadgeCheck size={20} className="mt-0.5 shrink-0 text-ok" />
@@ -218,11 +222,11 @@ export default function Home() {
         <h2 className="display text-[40px] sm:text-[48px] leading-none text-ink">Built the way AAC is practised</h2>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            [Fingerprint, "Core words never move", "High-frequency words stay in fixed positions so motor plans stay stable. Personal vocabulary lives in topic folders."],
+            [Fingerprint, "Core words never move", "24 high-frequency words, each with a symbol, in fixed positions so motor plans stay stable. Help, stop and all done are always there."],
             [ShieldCheck, "A human approves", "Favourites you named go straight in. Everything the agent suggests waits for a parent or SLP to keep or remove."],
             [Download, "No lock-in", "Exports to Open Board Format (.obz), the open interchange format for AAC boards, with pictures and phrases."],
             [HeartHandshake, "Talk with someone", "Build a page for one conversation partner: shared themes, joint topics, and questions to ask them."],
-            [Sparkles, "Evidence on every button", "Affinity score, source, age groups and address. Nothing is unexplained."],
+            [Sparkles, "Evidence on every button", "Affinity, which favourites led to it, how widely known it is, age groups and address. Nothing is unexplained."],
             [Lock, "Nothing stored", "No account. Boards live in your browser; the server keeps no personal data."],
           ].map(([Icon, t, b]) => {
             const I = Icon as typeof Lock;

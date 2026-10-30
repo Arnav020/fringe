@@ -1,7 +1,7 @@
 import "server-only";
 import * as Q from "./qloo";
 import { chatTools, type AgentMessage, type ToolDef } from "./llm";
-import { KIND_TO_TYPE, TEMPLATE, TYPE_TO_FOLDER, guards, shortName } from "./agent";
+import { KIND_TO_TYPE, suitable, TEMPLATE, TYPE_TO_FOLDER, guards, shortName } from "./agent";
 import type { Board, Cell, Folder, FolderKey, TraceEvent } from "./types";
 import { FOLDER_META } from "./vocab";
 
@@ -30,6 +30,15 @@ const TOOLS: ToolDef[] = [
         },
         required: ["name", "kind"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "more_like",
+      description:
+        "Suggest more buttons like the ones the person actually taps most. Pass the exact labels of those buttons; they become the Qloo taste signal for new suggestions in the same folders.",
+      parameters: { type: "object", properties: { labels: { type: "array", items: { type: "string" } } }, required: ["labels"] },
     },
   },
   {
@@ -81,7 +90,7 @@ function has(board: Board, id: string) {
   return board.folders.some((f) => f.cells.some((c) => c.entityId === id || c.id === id));
 }
 
-function toCell(e: Q.QlooEntity, key: FolderKey, why: string, kind: Cell["kind"], status: Cell["status"]): Cell {
+function toCell(e: Q.QlooEntity, key: FolderKey, why: string, kind: Cell["kind"], status: Cell["status"], because?: Cell["because"]): Cell {
   const label = shortName(e.name);
   return {
     id: e.id,
@@ -94,6 +103,8 @@ function toCell(e: Q.QlooEntity, key: FolderKey, why: string, kind: Cell["kind"]
     affinity: e.affinity,
     why,
     address: e.address,
+    popularity: e.popularity,
+    because,
     status,
     isNew: true,
   };
@@ -107,15 +118,30 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
   const changes: string[] = [];
   const done: string[] = [];
 
+  const okForPerson = (e: Q.QlooEntity) => suitable(person.age, e);
   const seedIds = () => b.folders.flatMap((f) => f.cells.filter((c) => c.kind === "seed" && c.entityId).map((c) => c.entityId!)).slice(0, 6);
 
   const run = async (name: string, args: Record<string, unknown>): Promise<string> => {
     const id = `tool-${++step}`;
     const t0 = Date.now();
     const label =
-      name === "add_interest" ? `Adding “${args.name}”` : name === "find_places" ? `Finding places for “${args.what}”` : name === "remove_buttons" ? "Removing buttons" : "Adding phrases";
+      name === "add_interest"
+        ? `Adding “${args.name}”`
+        : name === "more_like"
+          ? "Learning from what gets tapped"
+          : name === "find_places"
+            ? `Finding places for “${args.what}”`
+            : name === "remove_buttons"
+              ? "Removing buttons"
+              : "Adding phrases";
     const endpoint =
-      name === "add_interest" ? "GET /search · /v2/tags · /v2/insights" : name === "find_places" ? "GET /v2/tags · /v2/insights (place)" : "board edit";
+      name === "add_interest"
+        ? "GET /search · /v2/tags · /v2/insights"
+        : name === "more_like"
+          ? "GET /v2/insights · tapped buttons as signal + explainability"
+          : name === "find_places"
+            ? "GET /v2/tags · /v2/insights (place)"
+            : "board edit";
     emit({ id, label, endpoint, status: "running" });
     let out = "";
     try {
@@ -136,7 +162,7 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
             added.push(`${entity.name} (${key})`);
           }
           const rel = await Q.insights({ type: entity.type as Q.EntityType, entities: [entity.id], exclude: [entity.id], take: 6, ...guards(person.stage, entity.type as Q.EntityType) }).catch(() => []);
-          for (const e of rel.filter((x) => !has(b, x.id)).slice(0, 4)) {
+          for (const e of rel.filter((x) => !has(b, x.id) && okForPerson(x)).slice(0, 4)) {
             folderFor(b, key).cells.push(toCell(e, key, `Qloo affinity ${e.affinity?.toFixed(2) ?? "—"} with ${entity.name}.`, "expanded", "suggested"));
             added.push(e.name);
           }
@@ -169,7 +195,7 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
             }),
           );
           domains.forEach(([key], i) => {
-            for (const e of lists[i].filter((x) => !has(b, x.id)).slice(0, 3)) {
+            for (const e of lists[i].filter((x) => !has(b, x.id) && okForPerson(x)).slice(0, 3)) {
               folderFor(b, key).cells.unshift(toCell(e, key, `Tagged “${tag.name}” in Qloo, and ranked by fit with ${person.name}'s taste profile.`, "expanded", "suggested"));
               added.push(`${e.name} (${key})`);
             }
@@ -184,6 +210,37 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
             .map(([k, n]) => `${n} ${k}`);
           done.push(`added ${added.length} for “${query}”${per.length ? ` (${per.join(", ")})` : ""}`);
         }
+        changes.push(...added.slice(0, 6));
+      } else if (name === "more_like") {
+        const labels = (Array.isArray(args.labels) ? args.labels : []).map((l) => String(l).toLowerCase());
+        const used = b.folders.flatMap((f) =>
+          f.cells.filter((c) => c.entityId && c.entityType && TYPE_TO_FOLDER[c.entityType] && labels.some((l) => c.label.toLowerCase() === l || c.label.toLowerCase().includes(l))),
+        );
+        if (!used.length) return "None of those labels are picture buttons on the board.";
+        const ids = used.map((c) => c.entityId!);
+        const names = new Map(used.map((c) => [c.entityId!, c.label]));
+        const types = [...new Set(used.map((c) => c.entityType as Q.EntityType))].filter((t) => t !== "place").slice(0, 3);
+        const onBoard = b.folders.flatMap((f) => f.cells.map((c) => c.entityId).filter(Boolean)) as string[];
+        const added: string[] = [];
+        await Promise.all(
+          types.map(async (type) => {
+            const res = await Q.insights({ type, entities: ids, exclude: onBoard, explain: true, take: 8, ...guards(person.stage, type) }).catch(() => []);
+            const key = TYPE_TO_FOLDER[type]!;
+            for (const e of res.filter((x) => !has(b, x.id) && okForPerson(x)).slice(0, 3)) {
+              const because = e.because
+                ?.filter((x) => names.has(x.id))
+                .sort((x, y) => y.score - x.score)
+                .map((x) => ({ name: names.get(x.id)!, share: x.score }));
+              const top = because?.[0]?.name ?? [...names.values()][0];
+              folderFor(b, key).cells.unshift(
+                toCell(e, key, `${person.name} taps ${top} a lot, and people who love ${top} love this too (Qloo affinity ${e.affinity?.toFixed(2) ?? "—"}).`, "expanded", "suggested", because),
+              );
+              added.push(`${e.name} (${key})`);
+            }
+          }),
+        );
+        out = added.length ? `Added ${added.length} from what gets tapped: ${added.join(", ")}` : "Nothing new found.";
+        if (added.length) done.push(`added ${added.length} more like ${[...names.values()].slice(0, 3).join(", ")}`);
         changes.push(...added.slice(0, 6));
       } else if (name === "find_places") {
         const what = String(args.what ?? "").slice(0, 60);

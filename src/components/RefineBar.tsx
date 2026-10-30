@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUp, LoaderCircle, MessageSquareText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUp, Hand, LoaderCircle, MessageSquareText } from "lucide-react";
 import type { Board, TraceEvent } from "@/lib/types";
-import { runAgent } from "@/lib/client";
+import { runAgent, usage } from "@/lib/client";
 import { upsertTrace } from "./Trace";
 
 const EXAMPLES: Record<string, string[]> = {
@@ -26,6 +26,14 @@ export default function RefineBar({ board, slug, onTrace, onBoard }: Props) {
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState<{ ok: boolean; text: string } | null>(null);
   const examples = EXAMPLES[slug] ?? ["They're into space now", "Find a park nearby", "Remove anything scary"];
+  const [taps, setTaps] = useState<{ label: string; n: number }[]>([]);
+  // Re-read the on-device tap log while the board is open (local only, nothing is sent until a caregiver asks).
+  useEffect(() => {
+    const read = () => setTaps(usage.top(board.person.name, 3));
+    read();
+    const t = setInterval(read, 2000);
+    return () => clearInterval(t);
+  }, [board]);
 
   const send = async (instruction: string) => {
     if (!instruction.trim() || busy) return;
@@ -72,6 +80,17 @@ export default function RefineBar({ board, slug, onTrace, onBoard }: Props) {
         </button>
       </form>
       <div className="mt-3 flex flex-wrap gap-2">
+        {taps.length > 0 && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => send(`${board.person.name} taps these most: ${taps.map((t) => `${t.label} (${t.n}x)`).join(", ")}. Suggest more like them.`)}
+            className="neu-btn flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-accent disabled:opacity-50"
+            title="Uses the tap count stored on this device; only the button names are sent"
+          >
+            <Hand size={14} /> More like what {board.person.name} taps: {taps.map((t) => t.label).join(", ")}
+          </button>
+        )}
         {examples.map((ex) => (
           <button key={ex} type="button" disabled={busy} onClick={() => send(ex)} className="neu-btn px-3 py-1.5 text-[13px] font-medium text-ink-2 disabled:opacity-50">
             {ex}

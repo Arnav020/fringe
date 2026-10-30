@@ -29,6 +29,7 @@ const TOOLS = [
         age: { type: "number" },
         city: { type: "string", description: "City, used for real local places, e.g. 'Austin, TX'" },
         likes: { type: "string", description: "Comma-separated things they love: shows, artists, games, books, foods, people" },
+        lang: { type: "string", description: "Optional home language as a two-letter code (hi, es, mr, ta, bn) for phrases in that language" },
       },
       required: ["name", "age", "city", "likes"],
     },
@@ -84,7 +85,7 @@ async function handle(msg: Rpc) {
       const noop = () => {};
       try {
         if (name === "build_aac_board") {
-          const board = await buildBoard({ name: String(a.name ?? ""), age: Number(a.age) || 10, city: String(a.city ?? ""), likes: String(a.likes ?? "") }, noop);
+          const board = await buildBoard({ name: String(a.name ?? ""), age: Number(a.age) || 10, city: String(a.city ?? ""), likes: String(a.likes ?? ""), lang: a.lang ? String(a.lang).slice(0, 2) : undefined }, noop);
           return ok(msg.id, { content: [{ type: "text", text: summarise(board) }], structuredContent: board });
         }
         if (name === "talk_with_partner") {

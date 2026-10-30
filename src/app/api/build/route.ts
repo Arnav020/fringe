@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     city: String(body.city ?? "").slice(0, 60),
     likes: body.likes.slice(0, 600),
     about: body.about ? String(body.about).slice(0, 200) : undefined,
+    lang: typeof body.lang === "string" ? body.lang.slice(0, 2) : undefined,
   };
   return ndjsonRun((emit) => buildBoard(input, emit));
 }

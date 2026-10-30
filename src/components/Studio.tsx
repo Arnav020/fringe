@@ -13,11 +13,14 @@ import Evidence from "./Evidence";
 import BridgePanel from "./BridgePanel";
 import BaselinePanel from "./BaselinePanel";
 import RefineBar from "./RefineBar";
+import TasteMap from "./TasteMap";
+
+const LANG_NAME: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Marathi", ta: "Tamil", bn: "Bengali" };
 
 type Tab = "board" | "bridge" | "baseline";
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 
 export default function Studio() {
   const params = useSearchParams();
@@ -34,12 +37,13 @@ export default function Studio() {
   const [active, setActive] = useState(0);
   const [caregiver, setCaregiver] = useState(false);
   const [large, setLarge] = useState(slug === "leo");
+  const [home, setHome] = useState(false);
   const [inspect, setInspect] = useState<Cell | null>(null);
   const [tab, setTab] = useState<Tab>("board");
   const [refineTrace, setRefineTrace] = useState<TraceEvent[]>([]);
   const ran = useRef<string | null>(null);
 
-  const cacheKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}`;
+  const cacheKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}|${i.lang ?? ""}`;
 
   const build = useCallback(async (i: BuildInput, force = false) => {
     setErr(null);
@@ -79,6 +83,7 @@ export default function Studio() {
     ran.current = p.slug;
     setCustom(false);
     setLarge(p.slug === "leo");
+    setHome(false);
     setInput(p);
     build(p);
   }, [slug, build]);
@@ -181,6 +186,17 @@ export default function Studio() {
                   />
                 </label>
                 <label className="block">
+                  <span className="mb-1.5 block text-[13px] font-semibold text-ink-2">Language at home</span>
+                  <select className={field} value={input.lang ?? ""} onChange={(e) => setInput({ ...input, lang: e.target.value || undefined })}>
+                    <option value="">English only</option>
+                    {Object.entries(LANG_NAME).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        English + {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
                   <span className="mb-1.5 block text-[13px] font-semibold text-ink-2">Anything else? <span className="font-normal text-muted">(optional)</span></span>
                   <input className={field} value={input.about ?? ""} onChange={(e) => setInput({ ...input, about: e.target.value })} placeholder="Loves dogs, hates loud places" />
                 </label>
@@ -260,6 +276,24 @@ export default function Studio() {
                   <span className={`block h-6 w-6 rounded-full shadow transition-transform ${large ? "translate-x-6 bg-accent" : "translate-x-0 bg-white"}`} />
                 </button>
               </div>
+              {board.person.lang && LANG_NAME[board.person.lang] && (
+                <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+                  <div>
+                    <div className="text-[14px] font-semibold text-ink">Speak {LANG_NAME[board.person.lang]}</div>
+                    <div className="text-[12.5px] text-muted">The family&rsquo;s home language, with Qloo&rsquo;s local names</div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={home}
+                    onClick={() => setHome((v) => !v)}
+                    className="neu-in-sm relative h-8 w-14 shrink-0 rounded-full p-1"
+                    aria-label={`Speak ${LANG_NAME[board.person.lang]}`}
+                  >
+                    <span className={`block h-6 w-6 rounded-full shadow transition-transform ${home ? "translate-x-6 bg-accent" : "translate-x-0 bg-white"}`} />
+                  </button>
+                </div>
+              )}
               <button type="button" onClick={() => exportObz(board)} className="neu-btn mt-4 flex h-11 w-full items-center justify-center gap-2 text-[14px] font-semibold text-ink">
                 <Download size={17} /> Export to any AAC app (.obz)
               </button>
@@ -268,6 +302,8 @@ export default function Studio() {
               </button>
             </div>
           )}
+
+          {board && <TasteMap board={board} onPick={setInspect} />}
         </aside>
 
         {/* Centre: the device */}
@@ -335,6 +371,7 @@ export default function Studio() {
               setActive={setActive}
               caregiver={caregiver}
               large={large}
+              home={home}
               selectedId={inspect?.id}
               onInspect={setInspect}
               onApprove={(fi, id) => mutateFolder(fi, (f) => ({ ...f, cells: f.cells.map((c) => (c.id === id ? { ...c, status: "approved" } : c)) }))}
@@ -362,7 +399,7 @@ export default function Studio() {
         <aside className="order-3 lg:order-none lg:col-span-2 xl:col-span-1">
           <div className="neu p-5 xl:sticky xl:top-6">
             {inspect ? (
-              <Evidence cell={inspect} onClose={() => setInspect(null)} />
+              <Evidence cell={inspect} onClose={() => setInspect(null)} lang={board?.person.lang} />
             ) : (
               <>
                 {refineTrace.length > 0 && (

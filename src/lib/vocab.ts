@@ -10,25 +10,35 @@ export type WordClass = "pronoun" | "verb" | "describe" | "social" | "question" 
 export interface CoreWord {
   word: string;
   cls: WordClass;
+  /** The word in other home languages, keyed by primary language tag. */
+  t?: Record<string, string>;
 }
 
 export const CORE: CoreWord[] = [
-  { word: "I", cls: "pronoun" },
-  { word: "you", cls: "pronoun" },
-  { word: "like", cls: "verb" },
-  { word: "love", cls: "verb" },
-  { word: "want", cls: "verb" },
-  { word: "go", cls: "verb" },
-  { word: "watch", cls: "verb" },
-  { word: "play", cls: "verb" },
-  { word: "more", cls: "describe" },
-  { word: "funny", cls: "describe" },
-  { word: "not", cls: "negate" },
-  { word: "what", cls: "question" },
-  { word: "yes", cls: "social" },
-  { word: "no", cls: "negate" },
-  { word: "with", cls: "little" },
-  { word: "favorite", cls: "describe" },
+  { word: "I", cls: "pronoun", t: { hi: "मैं", es: "yo" } },
+  { word: "you", cls: "pronoun", t: { hi: "तुम", es: "tú" } },
+  { word: "like", cls: "verb", t: { hi: "पसंद", es: "gusta" } },
+  { word: "love", cls: "verb", t: { hi: "प्यार", es: "me encanta" } },
+  { word: "want", cls: "verb", t: { hi: "चाहिए", es: "quiero" } },
+  { word: "go", cls: "verb", t: { hi: "जाना", es: "ir" } },
+  { word: "watch", cls: "verb", t: { hi: "देखना", es: "ver" } },
+  { word: "play", cls: "verb", t: { hi: "खेलना", es: "jugar" } },
+  { word: "more", cls: "describe", t: { hi: "और", es: "más" } },
+  { word: "funny", cls: "describe", t: { hi: "मज़ेदार", es: "chistoso" } },
+  { word: "not", cls: "negate", t: { hi: "नहीं", es: "no" } },
+  { word: "what", cls: "question", t: { hi: "क्या", es: "qué" } },
+  { word: "yes", cls: "social", t: { hi: "हाँ", es: "sí" } },
+  { word: "no", cls: "negate", t: { hi: "ना", es: "no" } },
+  { word: "with", cls: "little", t: { hi: "साथ", es: "con" } },
+  { word: "favorite", cls: "describe", t: { hi: "पसंदीदा", es: "favorito" } },
+  { word: "help", cls: "verb", t: { hi: "मदद", es: "ayuda" } },
+  { word: "stop", cls: "verb", t: { hi: "रुको", es: "para" } },
+  { word: "all done", cls: "social", t: { hi: "हो गया", es: "terminé" } },
+  { word: "again", cls: "describe", t: { hi: "फिर से", es: "otra vez" } },
+  { word: "my", cls: "pronoun", t: { hi: "मेरा", es: "mi" } },
+  { word: "it", cls: "pronoun", t: { hi: "यह", es: "eso" } },
+  { word: "where", cls: "question", t: { hi: "कहाँ", es: "dónde" } },
+  { word: "feel", cls: "verb", t: { hi: "लगता", es: "siento" } },
 ];
 
 export const FITZGERALD: Record<WordClass, { bg: string; ink: string; name: string }> = {

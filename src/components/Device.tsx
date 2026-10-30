@@ -2,7 +2,27 @@
 
 import { useState } from "react";
 import {
+  ArrowRight,
+  Ban,
   BookOpen,
+  Box,
+  CircleCheckBig,
+  CircleHelp,
+  CircleUser,
+  Compass,
+  Eye,
+  Hand,
+  Laugh,
+  LifeBuoy,
+  Link,
+  OctagonX,
+  Plus,
+  Pointer,
+  Puzzle,
+  RotateCcw,
+  Smile,
+  ThumbsUp,
+  User,
   Check,
   Clapperboard,
   Delete,
@@ -20,7 +40,35 @@ import {
 } from "lucide-react";
 import type { Board, Cell, FolderKey } from "@/lib/types";
 import { CORE, FITZGERALD } from "@/lib/vocab";
-import { speak } from "@/lib/client";
+import { speak, usage } from "@/lib/client";
+
+/** A symbol for every core word: pre-literate users read the picture, not the word. */
+const CORE_ICON: Record<string, typeof Tv> = {
+  I: User,
+  you: Pointer,
+  like: ThumbsUp,
+  love: Heart,
+  want: Hand,
+  go: ArrowRight,
+  watch: Eye,
+  play: Puzzle,
+  more: Plus,
+  funny: Laugh,
+  not: Ban,
+  what: CircleHelp,
+  yes: Check,
+  no: X,
+  with: Link,
+  favorite: Star,
+  help: LifeBuoy,
+  stop: OctagonX,
+  "all done": CircleCheckBig,
+  again: RotateCcw,
+  my: CircleUser,
+  it: Box,
+  where: Compass,
+  feel: Smile,
+};
 
 export const FOLDER_ICON: Record<FolderKey, typeof Tv> = {
   shows: Tv,
@@ -41,19 +89,22 @@ interface Props {
   caregiver: boolean;
   /** Fewer, bigger targets for eye-gaze, switch and motor-access users. */
   large?: boolean;
+  /** Show and speak the board in the person's home language (board.person.lang). */
+  home?: boolean;
   selectedId?: string;
   onInspect: (c: Cell) => void;
   onApprove: (folder: number, id: string) => void;
   onRemove: (folder: number, id: string) => void;
 }
 
-export default function Device({ board, active, setActive, caregiver, large = false, selectedId, onInspect, onApprove, onRemove }: Props) {
+export default function Device({ board, active, setActive, caregiver, large = false, home = false, selectedId, onInspect, onApprove, onRemove }: Props) {
   const [strip, setStrip] = useState<{ key: string; text: string; image?: string }[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
   const folder = board.folders[active] ?? board.folders[0];
+  const lang = home && board.person.lang ? board.person.lang : "en";
 
   const press = (key: string, text: string, say = text, image?: string) => {
-    speak(say);
+    speak(say, lang);
     setStrip((s) => [...s, { key: `${key}-${Date.now()}`, text, image }].slice(-12));
     setFlash(key);
     setTimeout(() => setFlash(null), 160);
@@ -95,7 +146,7 @@ export default function Device({ board, active, setActive, caregiver, large = fa
         </button>
         <button
           type="button"
-          onClick={() => sentence && speak(sentence)}
+          onClick={() => sentence && speak(sentence, lang)}
           className="btn-accent flex h-12 shrink-0 items-center gap-2 px-4 font-semibold"
           aria-label="Speak sentence"
         >
@@ -108,19 +159,22 @@ export default function Device({ board, active, setActive, caregiver, large = fa
       <div className="mt-4 grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-2.5">
         {CORE.map((w) => {
           const c = FITZGERALD[w.cls];
+          const Icon = CORE_ICON[w.word] ?? Box;
+          const text = lang !== "en" ? (w.t?.[lang] ?? w.word) : w.word;
           return (
             <button
               key={w.word}
               type="button"
               data-flash={flash === `core-${w.word}`}
-              onClick={() => press(`core-${w.word}`, w.word)}
-              className="key h-12 sm:h-14 overflow-hidden text-[15px] sm:text-base font-semibold"
+              onClick={() => press(`core-${w.word}`, text)}
+              className="key flex h-14 sm:h-16 flex-col items-center justify-center gap-0.5 overflow-hidden text-[14px] sm:text-[15px] font-semibold leading-none"
               style={{ color: c.ink }}
               title={`${c.name} word`}
             >
               <span className="absolute inset-x-0 top-0 h-[5px]" style={{ background: c.bg }} />
               <span className="absolute inset-0 opacity-[0.22]" style={{ background: c.bg }} />
-              <span className="relative">{w.word}</span>
+              <Icon size={18} strokeWidth={2.4} className="relative" aria-hidden />
+              <span className="relative">{text}</span>
             </button>
           );
         })}
@@ -167,15 +221,20 @@ export default function Device({ board, active, setActive, caregiver, large = fa
           <div className={`mt-3 grid gap-3 sm:gap-4 ${large ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4"}`}>
             {folder.cells.map((c) => {
               const pending = caregiver && c.status === "suggested";
+              const label = lang !== "en" && c.alt ? c.alt.label : c.label;
+              const say = lang !== "en" && c.alt?.say ? c.alt.say : c.say;
               const selected = selectedId === c.id;
               return (
                 <div key={c.id} className={`rise relative ${pending ? "opacity-[0.92]" : ""}`}>
                   <button
                     type="button"
                     data-flash={flash === c.id}
-                    onClick={() => press(c.id, c.label, c.say, c.image)}
+                    onClick={() => {
+                      press(c.id, label, say, c.image);
+                      if (c.entityId) usage.tap(board.person.name, c.entityId, c.label);
+                    }}
                     className={`key w-full text-left p-2 ${selected ? "ring-2 ring-accent/70" : ""} ${pending ? "outline-2 outline-dashed outline-accent/50 outline-offset-2" : ""}`}
-                    aria-label={`${c.label}. Says: ${c.say}`}
+                    aria-label={`${label}. Says: ${say}`}
                   >
                     <div className="relative aspect-[4/3] overflow-hidden rounded-[13px] bg-bg-deep">
                       {c.image ? (
@@ -195,7 +254,7 @@ export default function Device({ board, active, setActive, caregiver, large = fa
                       )}
                     </div>
                     <div className="px-1 pt-2 pb-0.5">
-                      <div className={`line-clamp-2 font-semibold leading-snug text-ink ${large ? "text-lg sm:text-xl" : "text-[15px] sm:text-base"}`}>{c.label}</div>
+                      <div className={`line-clamp-2 font-semibold leading-snug text-ink ${large ? "text-lg sm:text-xl" : "text-[15px] sm:text-base"}`}>{label}</div>
                     </div>
                   </button>
                   <button

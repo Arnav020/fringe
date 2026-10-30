@@ -54,6 +54,7 @@ export const PERSONAS: Persona[] = [
     headline: "His board came from an American template. It doesn’t know Chhota Bheem.",
     likes: "Shah Rukh Khan, Chhota Bheem, cricket, Pokemon, Arijit Singh, butter chicken",
     about: "Cricket-mad, does a perfect SRK impression.",
+    lang: "hi",
     partner: {
       name: "Nani",
       age: 66,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Heart, MapPin, Sparkles, Users, Volume2, X } from "lucide-react";
+import { ExternalLink, Flame, GitBranch, Heart, Languages, MapPin, Megaphone, Sparkles, Users, Volume2, X } from "lucide-react";
 import type { Cell } from "@/lib/types";
 import { speak } from "@/lib/client";
 
@@ -12,7 +12,18 @@ const KIND_LABEL: Record<Cell["kind"], string> = {
   bridge: "Bridge topic",
 };
 
-export default function Evidence({ cell, onClose }: { cell: Cell; onClose: () => void }) {
+const LANG: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Marathi", ta: "Tamil", bn: "Bengali" };
+
+/** Popularity percentile → how many conversation partners are likely to know it. */
+function reach(p: number) {
+  if (p >= 0.97) return { label: "Almost everyone knows this", note: "an easy opener with anyone" };
+  if (p >= 0.85) return { label: "Widely known", note: "most people can join in" };
+  if (p >= 0.6) return { label: "Known by fans", note: "great with people who share the interest" };
+  return { label: "A niche pick", note: "best with people who already love it" };
+}
+
+export default function Evidence({ cell, onClose, lang }: { cell: Cell; onClose: () => void; lang?: string }) {
+  const max = Math.max(...(cell.because?.map((b) => b.share) ?? [0]), 0.01);
   return (
     <div className="rise">
       <div className="flex items-start justify-between gap-3">
@@ -45,7 +56,54 @@ export default function Evidence({ cell, onClose }: { cell: Cell; onClose: () =>
         <span>&ldquo;{cell.say}&rdquo;</span>
       </button>
 
+      {cell.alt?.say && lang && (
+        <button type="button" onClick={() => speak(cell.alt!.say, lang)} className="neu-btn mt-2 flex w-full items-center gap-2 px-3 py-2.5 text-left text-[15px] text-ink">
+          <Languages size={18} className="shrink-0 text-accent" />
+          <span>
+            &ldquo;{cell.alt.say}&rdquo; <span className="text-[12px] text-muted">({LANG[lang] ?? lang})</span>
+          </span>
+        </button>
+      )}
+
       <p className="mt-4 text-[14px] leading-relaxed text-ink-2">{cell.why}</p>
+
+      {cell.because && cell.because.length > 0 && (
+        <div className="neu-in-sm mt-4 p-3">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+            <GitBranch size={15} className="text-accent" /> Which favourites led here
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {cell.because.map((b) => (
+              <div key={b.name} className="grid grid-cols-[minmax(0,1fr)_92px_36px] items-center gap-2 text-[12.5px]">
+                <span className="truncate text-ink-2">{b.name}</span>
+                <span className="h-2 rounded-full bg-white/80">
+                  <span className="block h-2 rounded-full bg-accent" style={{ width: `${Math.round((b.share / max) * 100)}%`, opacity: 0.35 + 0.65 * (b.share / max) }} />
+                </span>
+                <span className="text-right font-mono text-ink">{Math.round(b.share * 100)}%</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11.5px] text-muted">Share of the recommendation each signal drove, from Qloo explainability.</p>
+        </div>
+      )}
+
+      {cell.popularity !== undefined && cell.popularity > 0 && (
+        <div className="mt-4 flex items-start gap-2.5 text-[13px]">
+          <Megaphone size={16} className="mt-0.5 shrink-0 text-accent" />
+          <div>
+            <span className="font-semibold text-ink">{reach(cell.popularity).label}</span>
+            <span className="text-ink-2">: {reach(cell.popularity).note}.</span>
+            <span className="ml-1 font-mono text-[11.5px] text-muted">popularity {cell.popularity.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
+      {cell.hotspot && (
+        <div className="mt-3 flex items-start gap-2.5 text-[13px] text-ink-2">
+          <Flame size={16} className="mt-0.5 shrink-0 text-accent" />
+          <span>Inside a neighbourhood where this taste is concentrated (Qloo heatmap).</span>
+        </div>
+      )}
 
       {cell.affinity !== undefined && (
         <div className="mt-4">

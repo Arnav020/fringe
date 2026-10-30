@@ -2,18 +2,22 @@
 
 import type { TraceEvent } from "./types";
 
-/** Speak with the device's own voice (no network, works offline once loaded). */
-export function speak(text: string) {
+/** Speak with the device's own voice (no network, works offline once loaded). `lang` is a primary tag like "hi". */
+export function speak(text: string, lang = "en") {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const synth = window.speechSynthesis;
   synth.cancel();
   const u = new SpeechSynthesisUtterance(text);
   const voices = synth.getVoices();
   const pick =
-    voices.find((v) => /en-US/i.test(v.lang) && /natural|neural|samantha|aria|jenny|google us/i.test(v.name)) ??
-    voices.find((v) => /en[-_]US/i.test(v.lang)) ??
-    voices.find((v) => /^en/i.test(v.lang));
+    lang === "en"
+      ? voices.find((v) => /en-US/i.test(v.lang) && /natural|neural|samantha|aria|jenny|google us/i.test(v.name)) ??
+        voices.find((v) => /en[-_]US/i.test(v.lang)) ??
+        voices.find((v) => /^en/i.test(v.lang))
+      : voices.find((v) => new RegExp(`^${lang}`, "i").test(v.lang) && /natural|neural|google/i.test(v.name)) ??
+        voices.find((v) => new RegExp(`^${lang}`, "i").test(v.lang));
   if (pick) u.voice = pick;
+  u.lang = pick?.lang ?? (lang === "en" ? "en-US" : `${lang}-IN`);
   u.rate = 0.95;
   u.pitch = 1.02;
   synth.speak(u);
@@ -64,5 +68,30 @@ export const store = {
     } catch {
       /* private mode / quota: the board still works, it just won't persist */
     }
+  },
+};
+
+/** On-device tap counts per board (nothing leaves the browser until a caregiver asks for suggestions). */
+export const usage = {
+  key: (name: string) => `fringe:usage:${name.toLowerCase()}`,
+  read(name: string): Record<string, { label: string; n: number }> {
+    try {
+      return JSON.parse(localStorage.getItem(usage.key(name)) ?? "{}");
+    } catch {
+      return {};
+    }
+  },
+  tap(name: string, id: string, label: string) {
+    try {
+      const u = usage.read(name);
+      u[id] = { label, n: (u[id]?.n ?? 0) + 1 };
+      localStorage.setItem(usage.key(name), JSON.stringify(u));
+    } catch {}
+  },
+  top(name: string, k = 3) {
+    return Object.entries(usage.read(name))
+      .sort((a, b) => b[1].n - a[1].n)
+      .slice(0, k)
+      .map(([id, v]) => ({ id, ...v }));
   },
 };

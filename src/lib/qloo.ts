@@ -36,6 +36,14 @@ export interface QlooEntity {
   address?: string;
   kidFriendly?: boolean;
   tags?: string[];
+  /** Qloo explainability: how much each signal entity contributed to this result (shares sum to ~1). */
+  because?: { id: string; score: number }[];
+  /** Localised names Qloo knows for this entity (e.g. { hi: "छोटा भीम" }). */
+  names?: Record<string, string>;
+  lat?: number;
+  lng?: number;
+  /** Content rating as Qloo stores it (MPAA/TV for film, ESRB for games). */
+  rating?: string;
 }
 
 export class QlooError extends Error {
@@ -97,8 +105,15 @@ function imageOf(r: Raw): string | undefined {
   return r.properties?.image?.url ?? r.properties?.images?.[0]?.url ?? undefined;
 }
 
+const LANGS = ["hi", "es", "mr", "ta", "bn"];
+
 function trim(r: Raw): QlooEntity {
   const p = r.properties ?? {};
+  const names: Record<string, string> = {};
+  for (const a of Array.isArray(p.akas) ? p.akas : []) {
+    if (LANGS.includes(a.language) && !names[a.language] && a.value) names[a.language] = String(a.value).trim();
+  }
+  const because = r.query?.explainability?.["signal.interests.entities"];
   return {
     id: r.entity_id,
     name: r.name,
@@ -112,6 +127,11 @@ function trim(r: Raw): QlooEntity {
       ? p.good_for.some((g: Raw) => String(g.id).includes("good_kids"))
       : undefined,
     tags: Array.isArray(r.tags) ? r.tags.slice(0, 6).map((t: Raw) => t.name) : undefined,
+    because: Array.isArray(because) ? because.map((b: Raw) => ({ id: b.entity_id, score: b.score })) : undefined,
+    names: Object.keys(names).length ? names : undefined,
+    rating: typeof p.content_rating === "string" ? p.content_rating : undefined,
+    lat: r.location?.lat ?? p.geocode?.latitude,
+    lng: r.location?.lon ?? p.geocode?.longitude,
   };
 }
 
@@ -139,6 +159,14 @@ export interface InsightOptions {
   age?: string;
   biasTrends?: "low" | "medium" | "high";
   exclude?: string[];
+  /** Ask Qloo which signal entities drove each result (feature.explainability). */
+  explain?: boolean;
+  /** Restrict places to a geohash cell, e.g. a taste hot-spot from the heatmap. */
+  geohash?: string;
+  /** Qloo audience URNs used as an extra signal (signal.demographics.audiences). */
+  audiences?: string[];
+  /** Match any of filterTags instead of all of them. */
+  anyTag?: boolean;
 }
 
 /** /v2/insights — taste-graph recommendations for one entity type. */
@@ -150,10 +178,14 @@ export async function insights(o: InsightOptions): Promise<QlooEntity[]> {
     "filter.location.query": o.location,
     "filter.content_rating": o.contentRating,
     "filter.tags": o.filterTags?.join(","),
+    "operator.filter.tags": o.anyTag && o.filterTags?.length ? "union" : undefined,
     "filter.popularity.min": o.popularityMin,
     "filter.exclude.entities": o.exclude?.join(","),
     "signal.demographics.age": o.age,
     "bias.trends": o.biasTrends,
+    "feature.explainability": o.explain ? "true" : undefined,
+    "filter.location.geohash": o.geohash,
+    "signal.demographics.audiences": o.audiences?.join(","),
     take: o.take ?? 8,
   })) as Raw;
   return (d.results?.entities ?? []).map(trim);
@@ -189,6 +221,43 @@ export async function demographics(ids: string[]): Promise<Demographic[]> {
   }));
 }
 
+/** Map an age in years to Qloo's age bucket for signal.demographics.age. */
+export function ageBucket(age: number): AgeBucket {
+  if (age <= 24) return "24_and_younger";
+  if (age <= 29) return "25_to_29";
+  if (age <= 34) return "30_to_34";
+  if (age <= 44) return "35_to_44";
+  if (age <= 54) return "45_to_54";
+  return "55_and_older";
+}
+
+export interface HeatCell {
+  lat: number;
+  lng: number;
+  geohash: string;
+  affinity: number;
+  popularity: number;
+}
+
+/** /v2/insights?filter.type=urn:heatmap — where in a city this taste is concentrated. */
+export async function heatmap(ids: string[], location: string, take = 50): Promise<HeatCell[]> {
+  if (!ids.length) return [];
+  const d = (await qlooGet("/v2/insights", {
+    "filter.type": "urn:heatmap",
+    "signal.interests.entities": ids.join(","),
+    "filter.location.query": location,
+    "output.heatmap.boundary": "urn:geohash",
+    take,
+  })) as Raw;
+  return (d.results?.heatmap ?? []).map((h: Raw) => ({
+    lat: h.location?.latitude,
+    lng: h.location?.longitude,
+    geohash: h.location?.geohash,
+    affinity: h.query?.affinity ?? 0,
+    popularity: h.query?.popularity ?? 0,
+  }));
+}
+
 export interface SharedTag {
   id: string;
   name: string;
@@ -213,9 +282,18 @@ export async function findTags(query: string, take = 5): Promise<SharedTag[]> {
   return (d.results?.tags ?? []).map((t: Raw) => ({ id: t.id, name: t.name, subtype: t.type }));
 }
 
+/** Place categories that suit an outing with a child or teen (used with operator.filter.tags=union). */
+const KID_CATEGORIES = ["park", "playground", "zoo", "museum", "aquarium", "amusement_park", "ice_cream_shop", "toy_store", "bowling_alley", "water_park", "library", "childrens_museum", "science_museum", "swimming_pool", "botanical_garden", "beach"];
+const TEEN_EXTRA = ["arcade", "movie_theater", "skate_park", "stadium", "trampoline_park", "book_store"];
+export function outingTags(stage: string): string[] | undefined {
+  if (stage === "child") return KID_CATEGORIES.map((c) => `urn:tag:category:place:${c}`);
+  if (stage === "teen") return [...KID_CATEGORIES, ...TEEN_EXTRA].map((c) => `urn:tag:category:place:${c}`);
+  return undefined;
+}
+
 /** Places that are not somewhere you'd suggest going together: lodging, bars, transit, venues for business. */
 const NOT_A_HANGOUT =
-  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b|drinks|brewery|brewing|taproom|winery|wine bar|liquor|beer|cocktail|disney world|school\b|college|university|hospital|clinic|office/i;
+  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b|drinks|brewery|brewing|tap ?room|tap ?house|winery|wine bar|liquor|beer|cocktail|disney world|school\b|college|university|hospital|clinic|office/i;
 /** Unnamed places come back as Google plus codes ("WRMH+9M8"). */
 const PLUS_CODE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}/;
 
