@@ -681,15 +681,26 @@ export async function buildBoard(input: BuildInput, emit: Emit): Promise<Board> 
     }
     const pool = candidates[key] ?? [];
     const picks = curated.data?.folders?.[key];
-    const chosen = Array.isArray(picks) && picks.length
+    const inPool = new Set(pool.map((e) => e.id));
+    const curatedPicks = Array.isArray(picks)
       ? picks
           .map((p) => {
-            const e = all.get(p.id);
+            // Only this folder's candidates: a handle from another list would put an artist in Movies.
+            const e = inPool.has(p.id) ? all.get(p.id) : undefined;
             if (!e) dropped++;
             return e ? { e, label: p.label, say: p.say } : null;
           })
           .filter(Boolean)
-      : pool.slice(0, PER_FOLDER).map((e) => ({ e, label: shortName(e.name), say: TEMPLATE[key](shortName(e.name)) }));
+      : [];
+    // If curation came back short (rate limits, a truncated reply), top up from Qloo's own ranking.
+    const chosen = [
+      ...curatedPicks,
+      ...(curatedPicks.length >= PER_FOLDER - 2
+        ? []
+        : pool
+            .filter((e) => !curatedPicks.some((c) => c!.e.id === e.id))
+            .map((e) => ({ e, label: shortName(e.name), say: TEMPLATE[key](shortName(e.name)) }))),
+    ];
 
     for (const c of chosen.slice(0, PER_FOLDER)) {
       const { e, label, say } = c!;
