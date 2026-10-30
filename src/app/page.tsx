@@ -7,11 +7,16 @@ import {
   HeartHandshake,
   Lock,
   MapPin,
+  Music2,
   Search,
   ShieldCheck,
   Sparkles,
+  Tv,
   Users,
   Wand2,
+  Building2,
+  Blocks,
+  Home as HomeIcon,
 } from "lucide-react";
 import Nav, { REPO_URL } from "@/components/Nav";
 import { PERSONAS } from "@/lib/personas";
@@ -78,13 +83,17 @@ export default function Home() {
             </div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-muted">With Fringe</div>
             <div className="mt-3 grid grid-cols-3 gap-3">
-              {[
-                ["Bluey", "Can we watch Bluey?", "#F4B98A"],
-                ["Taylor Swift", "Play Taylor Swift!", "#F7DE7E"],
-                ["Grandpa Joe", "Grandpa, remember the prairie?", "#F5B9CF"],
-              ].map(([l, s, c]) => (
+              {(
+                [
+                  ["Bluey", "Can we watch Bluey?", "#F4B98A", Tv],
+                  ["Taylor Swift", "Play Taylor Swift!", "#F7DE7E", Music2],
+                  ["Grandpa Joe", "Grandpa, remember the prairie?", "#F5B9CF", HeartHandshake],
+                ] as const
+              ).map(([l, s, c, Icon]) => (
                 <div key={l} className="neu-sm p-2">
-                  <div className="aspect-[4/3] rounded-xl" style={{ background: `linear-gradient(135deg, ${c}, #ffffff)` }} />
+                  <div className="grid aspect-[4/3] place-items-center rounded-xl" style={{ background: `linear-gradient(140deg, ${c} 0%, #fff7f0 100%)` }}>
+                    <Icon size={30} strokeWidth={1.8} className="text-ink/70" />
+                  </div>
                   <div className="mt-2 px-0.5 text-[14px] font-semibold text-ink">{l}</div>
                   <div className="px-0.5 pb-1 text-[11.5px] leading-snug text-muted">&ldquo;{s}&rdquo;</div>
                 </div>
@@ -218,6 +227,34 @@ export default function Home() {
             return (
               <div key={t as string} className="neu p-6">
                 <I size={22} className="text-accent" />
+                <h3 className="mt-4 text-[18px] font-semibold text-ink">{t as string}</h3>
+                <p className="mt-1.5 text-[14.5px] leading-relaxed text-ink-2">{b as string}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Where it goes */}
+      <section className="mx-auto mt-24 w-full max-w-[1240px] px-4 sm:px-6">
+        <h2 className="display text-[40px] sm:text-[48px] leading-none text-ink">Who it&rsquo;s for, and where it goes</h2>
+        <p className="mt-3 max-w-3xl text-[16px] text-muted">
+          AAC hardware and apps are routinely funded by insurance and schools. The labour of making them <i>personal</i> is not: it falls on parents and on
+          speech-language pathologists with full caseloads. Fringe turns that labour into a one-sentence review task.
+        </p>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {[
+            [HomeIcon, "Families", "Free in the browser. Describe your person, review the suggestions, export to the AAC app you already use.", "Today"],
+            [Building2, "SLPs & schools", "A caseload studio: one board per student, refreshed each term as tastes change, with partner pages for classmates and aides.", "Next"],
+            [Blocks, "AAC platforms", "Fringe as an API and agent tool: the taste layer AAC never had, plugged into existing apps through Open Board Format.", "Then"],
+          ].map(([Icon, t, b, when]) => {
+            const I = Icon as typeof Lock;
+            return (
+              <div key={t as string} className="neu p-6">
+                <div className="flex items-center justify-between">
+                  <I size={22} className="text-accent" />
+                  <span className="neu-in-sm px-2.5 py-1 text-[12px] font-semibold text-muted">{when as string}</span>
+                </div>
                 <h3 className="mt-4 text-[18px] font-semibold text-ink">{t as string}</h3>
                 <p className="mt-1.5 text-[14.5px] leading-relaxed text-ink-2">{b as string}</p>
               </div>

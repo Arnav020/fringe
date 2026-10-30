@@ -8,6 +8,7 @@ interface Item {
   name: string;
   category: string;
   found: boolean;
+  repeat: boolean;
   image?: string;
   matched?: string;
 }
@@ -48,7 +49,9 @@ export default function BaselinePanel({ board, input }: { board: Board; input: B
     found: data.items.filter((i) => i.found).length,
     places: data.items.filter((i) => i.category === "place").length,
     placesFound: data.items.filter((i) => i.category === "place" && i.found).length,
+    fresh: data.items.filter((i) => !i.repeat).length,
   };
+  const fresh = cells.filter((c) => c.kind === "expanded" || c.kind === "place" || c.kind === "bridge").length;
 
   return (
     <div className="neu p-5 sm:p-7">
@@ -87,7 +90,10 @@ export default function BaselinePanel({ board, input }: { board: Board; input: B
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14px] font-medium text-ink">{i.name}</div>
-                    <div className="text-[12px] capitalize text-muted">{i.category}</div>
+                    <div className="text-[12px] capitalize text-muted">
+                      {i.category}
+                      {i.repeat && <span className="ml-1.5 normal-case text-muted/80">· repeats the note</span>}
+                    </div>
                   </div>
                   {i.found ? (
                     <span className="flex items-center gap-1 text-[12px] text-ok" title={`Matched in Qloo: ${i.matched}`}>
@@ -107,6 +113,7 @@ export default function BaselinePanel({ board, input }: { board: Board; input: B
             <h3 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-muted">Measured side by side</h3>
             <div className="mt-3 space-y-3">
               <Row label="Buttons with a recognisable picture" a="0" b={`${fringe.pictures}/${fringe.total}`} note="AAC users who are pre-literate or have aphasia navigate by image." />
+              <Row label="New ideas beyond the caregiver's note" a={`${base.fresh}`} b={`${fresh}`} note="A board grows by finding what they'd love next, not by restating what you told it." />
               <Row label="Suggestions that resolve to a real entity" a={`${base.found}/${base.total}`} b={`${fringe.total - cells.filter((c) => c.kind === "food").length}/${fringe.total - cells.filter((c) => c.kind === "food").length}`} note="Fringe can only place ids Qloo returned; the verifier drops anything else." />
               <Row label={`Real places in ${board.person.city}`} a={`${base.placesFound}/${base.places}`} b={`${fringe.places}`} note="With addresses, matched to this person's taste profile." />
               <Row label="Topics with an age-group signal" a="0" b={`${fringe.ages}`} note="Who each topic will land with, from Qloo demographics." />

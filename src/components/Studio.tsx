@@ -119,7 +119,7 @@ export default function Studio() {
               ran.current = null;
               router.push(`/studio?p=${x.slug}`, { scroll: false });
             }}
-            className={`neu-btn flex h-11 items-center gap-2 px-4 text-[15px] font-semibold ${!custom && slug === x.slug ? "text-accent" : "text-ink-2"}`}
+            className={`neu-btn flex h-10 sm:h-11 items-center gap-2 px-3.5 sm:px-4 text-[14px] sm:text-[15px] font-semibold ${!custom && slug === x.slug ? "text-accent" : "text-ink-2"}`}
           >
             {x.name}, {x.age}
           </button>
@@ -131,15 +131,15 @@ export default function Studio() {
             setCustom(true);
             router.push(`/studio?p=custom`, { scroll: false });
           }}
-          className={`neu-btn flex h-11 items-center gap-2 px-4 text-[15px] font-semibold ${custom ? "text-accent" : "text-ink-2"}`}
+          className={`neu-btn flex h-10 sm:h-11 items-center gap-2 px-3.5 sm:px-4 text-[14px] sm:text-[15px] font-semibold ${custom ? "text-accent" : "text-ink-2"}`}
         >
-          <Pencil size={16} /> Build your own
+          <Pencil size={16} /> Your own
         </button>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_340px]">
         {/* Left: who this board is for */}
-        <aside className="space-y-6">
+        <aside className="order-2 space-y-6 lg:order-none">
           {custom ? (
             <form
               className="neu p-5"
@@ -250,7 +250,7 @@ export default function Studio() {
         </aside>
 
         {/* Centre: the device */}
-        <section className="min-w-0">
+        <section className="order-1 min-w-0 lg:order-none">
           <div className="mb-4 flex flex-wrap gap-2.5" role="tablist">
             {(
               [
@@ -317,23 +317,21 @@ export default function Studio() {
               key={board.person.name + partnerDefaults.name}
               board={board}
               defaults={partnerDefaults}
-              onFolder={(f) => {
-                addBridge(f);
-                setTab("board");
-              }}
+              onFolder={addBridge}
+              onOpen={() => setTab("board")}
             />
           )}
           {board && tab === "baseline" && <BaselinePanel key={board.person.name} board={board} input={input} />}
         </section>
 
         {/* Right: the agent's reasoning */}
-        <aside className="lg:col-span-2 xl:col-span-1">
+        <aside className="order-3 lg:order-none lg:col-span-2 xl:col-span-1">
           <div className="neu p-5 xl:sticky xl:top-6">
             {inspect ? <Evidence cell={inspect} onClose={() => setInspect(null)} /> : <Trace events={trace} stats={board?.stats} />}
             {!inspect && board && (
               <p className="mt-5 flex items-start gap-2 rounded-2xl bg-white/50 p-3 text-[12.5px] leading-relaxed text-muted">
                 <Sparkles size={15} className="mt-0.5 shrink-0 text-accent" />
-                Tap the <b className="mx-0.5 text-ink-2">i</b> on any picture to see the Qloo evidence behind it.
+                <span>Tap the info button on any picture to see the Qloo evidence behind it.</span>
               </p>
             )}
           </div>

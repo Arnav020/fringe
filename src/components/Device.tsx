@@ -123,7 +123,7 @@ export default function Device({ board, active, setActive, caregiver, selectedId
       </div>
 
       {/* Fringe folders */}
-      <div className="mt-5 flex gap-2.5 overflow-x-auto scrollbar-none pb-2 -mx-1 px-1" role="tablist" aria-label="Topics">
+      <div className="mt-5 flex flex-wrap gap-2.5" role="tablist" aria-label="Topics">
         {board.folders.map((f, i) => {
           const Icon = FOLDER_ICON[f.key];
           const pending = caregiver ? f.cells.filter((c) => c.status === "suggested").length : 0;

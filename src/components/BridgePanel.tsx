@@ -10,11 +10,12 @@ interface Props {
   board: Board;
   defaults: { name: string; age: number; relation: string; likes: string };
   onFolder: (f: Folder) => void;
+  onOpen: () => void;
 }
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
 
-export default function BridgePanel({ board, defaults, onFolder }: Props) {
+export default function BridgePanel({ board, defaults, onFolder, onOpen }: Props) {
   const [name, setName] = useState(defaults.name);
   const [age, setAge] = useState(defaults.age);
   const [likes, setLikes] = useState(defaults.likes);
@@ -107,7 +108,9 @@ export default function BridgePanel({ board, defaults, onFolder }: Props) {
                     </div>
                   ))}
               </div>
-              <p className="mt-4 text-[13px] text-muted">The new page has been added to {board.person.name}&rsquo;s board as a folder.</p>
+              <button type="button" onClick={onOpen} className="btn-accent mt-5 flex h-11 items-center gap-2 px-4 text-[14px] font-semibold">
+                <HeartHandshake size={17} /> Open the &ldquo;Talk with {name}&rdquo; page
+              </button>
             </div>
           )}
         </div>
