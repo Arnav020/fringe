@@ -52,11 +52,13 @@ function toCell(e: Q.QlooEntity, why: string): Cell {
 
 export async function nextPair(input: ChooseInput): Promise<ChooseRound> {
   const { person, seeds, history } = input;
-  const shown = new Set(history.flatMap((h) => h.shown));
-  seeds.forEach((s) => shown.add(s.id));
-  const picks = history.filter((h) => h.picked).map((h) => ({ id: h.picked!, type: h.pickedType ?? "" }));
+  // Only real Qloo ids: one malformed id in filter.exclude.entities makes Qloo reject the whole request.
+  const isId = (x: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
+  const shown = new Set(history.flatMap((h) => h.shown).filter(isId));
+  seeds.forEach((s) => isId(s.id) && shown.add(s.id));
+  const picks = history.filter((h) => h.picked && isId(h.picked)).map((h) => ({ id: h.picked!, type: h.pickedType ?? "" }));
   const lastPick = picks.at(-1);
-  const seedIds = seeds.map((s) => s.id).slice(0, 6);
+  const seedIds = seeds.map((s) => s.id).filter(isId).slice(0, 6);
 
   // Prefer a picture, a suitable rating for their age, and something not shown yet.
   const usable = (e: Q.QlooEntity) => !!e.image && !shown.has(e.id) && suitable(person.age, e) && TYPE_TO_FOLDER[String(e.type)] !== undefined;
