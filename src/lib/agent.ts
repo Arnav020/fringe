@@ -26,6 +26,7 @@ const DOMAINS: { key: FolderKey; type: Q.EntityType }[] = [
   { key: "music", type: "artist" },
   { key: "games", type: "videogame" },
   { key: "books", type: "book" },
+  { key: "people", type: "person" },
 ];
 
 export const KIND_TO_TYPE: Record<string, Q.EntityType | undefined> = {
@@ -51,6 +52,7 @@ export const TYPE_TO_FOLDER: Record<string, FolderKey | undefined> = {
   artist: "music",
   videogame: "games",
   book: "books",
+  person: "people",
   place: "places",
 };
 
@@ -140,7 +142,7 @@ async function resolve(parsed: Parsed, t: Tracer): Promise<Seed[]> {
       const seeds = await Promise.all(
         parsed.seeds.slice(0, 8).map(async (s): Promise<Seed> => {
           const type = KIND_TO_TYPE[s.kind?.toLowerCase?.() ?? ""];
-          const boardable = (e: Q.QlooEntity) => !!TYPE_TO_FOLDER[String(e.type)];
+          const boardable = (e: Q.QlooEntity) => !!TYPE_TO_FOLDER[String(e.type)] && (String(e.type) !== "place" || type === "place");
           t.calls++;
           let hits = await Q.search(s.text, type, 3).catch(() => []);
           // "Taylor Swift" can come back as a person or an album; we want the
@@ -185,8 +187,8 @@ async function expand(seeds: Seed[], person: Person, t: Tracer) {
   const out: Partial<Record<FolderKey, Q.QlooEntity[]>> = {};
   await t.step(
     "expand",
-    "Expanding across shows, movies, music, games and books",
-    "GET /v2/insights × 5",
+    "Expanding across shows, movies, music, games, books and people",
+    "GET /v2/insights × 6",
     async () => {
       await Promise.all(
         DOMAINS.map(async ({ key, type }) => {
@@ -199,7 +201,8 @@ async function expand(seeds: Seed[], person: Person, t: Tracer) {
             res = await Q.insights({ type, entities: ids, exclude: ids, take: 14, popularityMin: 0.5 }).catch(() => []);
             t.note(`expand-${key}`, `Relaxed filters for ${key}`, `only a few rated titles matched, retried with a popularity floor instead`, "warn");
           }
-          out[key] = res;
+          // Theme-park specials are catalogued as shows; they're places, not topics.
+          out[key] = res.filter((e) => !/disney ?world|disneyland/i.test(e.name));
         }),
       );
       return out;
@@ -320,6 +323,7 @@ export const TEMPLATE: Record<string, (n: string) => string> = {
   music: (n) => `Play ${n}!`,
   games: (n) => `Let's play ${n}`,
   books: (n) => `Read ${n} with me`,
+  people: (n) => `I like ${n}!`,
   places: (n) => `Can we go to ${n}?`,
   food: (n) => `I want ${n}`,
 };
@@ -330,6 +334,7 @@ const QUICK_FALLBACK: Record<string, string[]> = {
   music: ["Turn it up!", "This is my song", "Do you know this one?", "Play it again"],
   games: ["Want to play?", "I won!", "Your turn", "One more game"],
   books: ["Read it again", "What happens next?", "I like this part", "Turn the page"],
+  people: ["Did you see them?", "They're so cool", "Who's your favorite?", "I want to meet them"],
   places: ["Can we go?", "I had fun there", "Let's go this weekend", "Who's coming?"],
   food: ["I'm hungry", "More please", "That's yummy", "I don't like it"],
 };
@@ -442,7 +447,7 @@ export async function buildBoard(input: BuildInput, emit: Emit): Promise<Board> 
   const seedNames = resolved.map((s) => shortName(s.entity!.name));
   const seedRoom = resolved.map((s) => room.get(s.entity!.id));
 
-  for (const key of ["shows", "movies", "music", "games", "books", "places"] as FolderKey[]) {
+  for (const key of ["shows", "movies", "music", "games", "books", "people", "places"] as FolderKey[]) {
     const cells: Cell[] = [];
     // The person's own favourites go first, exactly as the caregiver named them.
     for (const s of resolved) {

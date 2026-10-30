@@ -65,7 +65,7 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
-const ORDER: FolderKey[] = ["shows", "movies", "music", "games", "books", "places", "food", "bridge"];
+const ORDER: FolderKey[] = ["shows", "movies", "music", "games", "books", "people", "places", "food", "bridge"];
 
 function folderFor(board: Board, key: FolderKey): Folder {
   let f = board.folders.find((x) => x.key === key);

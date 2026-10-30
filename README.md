@@ -20,7 +20,7 @@ An AAC board without culture is *technically functional*. A board that knows wha
 
 | | |
 |---|---|
-| **Builds the board** | Turns a one-line note into topic folders (Shows, Movies, Music, Games, Books, Places, Food) with real pictures, natural first-person phrases and social-closeness phrases ("Have you seen it?"). |
+| **Builds the board** | Turns a one-line note into topic folders (Shows, Movies, Music, Games, Books, People, Places, Food) with real pictures, natural first-person phrases and social-closeness phrases ("Have you seen it?"). |
 | **Keeps core words fixed** | The 16 high-frequency core words stay in fixed positions, colour-coded with the Modified Fitzgerald Key, so motor plans never break. Personal vocabulary lives in folders. |
 | **Reads the room** | Uses Qloo demographics to label who each topic will land with: Bluey is a *parents & teachers* topic, Sinatra a *grandkids* one. |
 | **Keeps it current** | Tastes change. A caregiver types *"she's obsessed with dinosaurs now, find somewhere she can swim, remove Hello Neighbor, it scares her"*. A **tool-calling agent** plans and runs Qloo-backed tools: a dinosaur tag as a hard filter ranked by *her* taste (The Land Before Time, not Jurassic Park), swimming pools in Austin, and a removal. |

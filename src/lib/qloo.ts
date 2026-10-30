@@ -215,8 +215,10 @@ export async function findTags(query: string, take = 5): Promise<SharedTag[]> {
 
 /** Places that are not somewhere you'd suggest going together: lodging, bars, transit, venues for business. */
 const NOT_A_HANGOUT =
-  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b/i;
+  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b|drinks|brewery|brewing|taproom|winery|wine bar|liquor|beer|cocktail|disney world|school\b|college|university|hospital|clinic|office/i;
+/** Unnamed places come back as Google plus codes ("WRMH+9M8"). */
+const PLUS_CODE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}/;
 
 export function isHangout(e: QlooEntity) {
-  return !NOT_A_HANGOUT.test(e.name);
+  return !NOT_A_HANGOUT.test(e.name) && !PLUS_CODE.test(e.name);
 }

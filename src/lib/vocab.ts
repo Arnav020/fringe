@@ -48,6 +48,7 @@ export const FOLDER_META: Record<string, { title: string; tint: string }> = {
   music: { title: "Music", tint: "#F4B98A" },
   games: { title: "Games", tint: "#F4B98A" },
   books: { title: "Books", tint: "#F4B98A" },
+  people: { title: "People", tint: "#F4B98A" },
   places: { title: "Places", tint: "#F4B98A" },
   food: { title: "Food", tint: "#F4B98A" },
   bridge: { title: "Talk with", tint: "#F5B9CF" },

@@ -1,6 +1,6 @@
 export type Stage = "child" | "teen" | "adult" | "older";
 
-export type FolderKey = "shows" | "movies" | "music" | "games" | "books" | "places" | "food" | "bridge";
+export type FolderKey = "shows" | "movies" | "music" | "games" | "books" | "people" | "places" | "food" | "bridge";
 
 export type CellKind = "seed" | "expanded" | "place" | "food" | "bridge";
 

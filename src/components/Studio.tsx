@@ -17,7 +17,7 @@ import RefineBar from "./RefineBar";
 type Tab = "board" | "bridge" | "baseline";
 
 const field = "neu-in-sm w-full px-3.5 py-3 text-[15px] text-ink placeholder:text-muted/70 outline-none focus-visible:outline-none";
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 
 export default function Studio() {
   const params = useSearchParams();
