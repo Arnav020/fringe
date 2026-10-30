@@ -148,7 +148,8 @@ async function understand(input: BuildInput, t: Tracer): Promise<{ parsed: Parse
         seeds: (r!.data.seeds ?? []).filter((x) => x && typeof x.text === "string" && x.text.trim()).map((x) => ({ text: x.text.trim().slice(0, 80), kind: String(x.kind ?? "") })),
         foods: list(r!.data.foods),
         activities: list(r!.data.activities),
-        themes: list(r!.data.themes),
+        // A theme only counts if the caregiver actually wrote it (models like to add "animation" or "music").
+        themes: list(r!.data.themes).filter((x) => input.likes.toLowerCase().includes(x.toLowerCase().replace(/s$/, ""))),
       }
     : naiveParse(input.likes);
   t.note(
