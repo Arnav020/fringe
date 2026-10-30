@@ -108,10 +108,15 @@ claude mcp add --transport http fringe https://fringe-aac.vercel.app/api/mcp
 ## Tests
 
 ```bash
-npm test   # vitest: age guard rails, ESRB game filter, place filters, curation handles, core vocabulary, Open Board Format export
+npm test   # vitest, 26 tests: age guard rails (ESRB, film/TV ratings), name matching, fallback parsing and planning, place filters, curation handles, core vocabulary, Open Board Format export
 ```
 
-The agent itself is checked end to end against the live API for all four personas (type of every button matches its folder, explainability coverage, mapped places, home-language phrases).
+Beyond unit tests, Fringe was stress-tested black-box against the live deployment with 55 scenarios written from this README: typos ("Bluee", "Tayler Swift"), notes with only themes or only foods, notes in Spanish, prompt injection, a child whose family names M-rated games, unknown cities, Lagos and Tokyo, ages 3 to 100, a 6,000-character note, abusive refine requests, and every MCP error path. Plus 16 browser tests (switching persona mid-build, double-clicking Build, reload, export, review queue, 375px mobile). Things it found and fixed:
+
+- Qloo search isn't typo-tolerant: "Bluee" came back as *Blue Eye Samurai* (TV-MA). The model now corrects spelling and the resolver only accepts close name matches.
+- Mixing a theme tag with entity signals derails results (Bluey + "dinosaurs" returned adult dramas), so themes are a filter alongside favourites and a signal only on their own.
+- When the language model is rate-limited, every step still finishes: a plain parser, a rule-based planner for "Tastes change", phrase templates, and Hindi and Spanish phrase patterns.
+- Favourites rated above the person's age (film, TV and game ratings from Qloo) stay on the board for the caregiver to review, but never steer suggestions.
 
 ## Run it locally
 
