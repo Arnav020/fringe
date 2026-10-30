@@ -59,8 +59,11 @@ function rawGet(path: string, query: string): Promise<unknown> {
   return memo(`q:${path}?${query}`, 24 * 3600_000, () => limited(() => fetchQloo(path, query)));
 }
 
-/** At most MAX_IN_FLIGHT Qloo requests at once per instance, so a burst of boards queues instead of hitting 429s. */
-const MAX_IN_FLIGHT = 8;
+/**
+ * At most MAX_IN_FLIGHT Qloo requests at once per instance, so a burst of boards queues instead of hitting 429s.
+ * (Measured: the hackathon key allows a burst of ~20, then roughly 7 requests a second.)
+ */
+const MAX_IN_FLIGHT = 6;
 let inFlight = 0;
 const waiting: (() => void)[] = [];
 async function limited<T>(fn: () => Promise<T>): Promise<T> {
@@ -88,7 +91,7 @@ async function fetchQloo(path: string, query: string): Promise<unknown> {
   return res.json();
 }
 
-/** GET with up to two retries (backoff with jitter) on 429/5xx. Params are sorted so cache keys are stable. */
+/** GET with up to four retries (exponential backoff with jitter) on 429/5xx. Params are sorted so cache keys are stable. */
 export async function qlooGet(path: string, params: Record<string, string | number | undefined>) {
   const qs = new URLSearchParams(
     Object.entries(params)
@@ -101,8 +104,8 @@ export async function qlooGet(path: string, params: Record<string, string | numb
       return await rawGet(path, qs);
     } catch (e) {
       const retryable = e instanceof QlooError && (e.status === 429 || e.status >= 500);
-      if (!retryable || attempt >= 2) throw e;
-      await new Promise((r) => setTimeout(r, 600 * (attempt + 1) + Math.random() * 400));
+      if (!retryable || attempt >= 4) throw e;
+      await new Promise((r) => setTimeout(r, 400 * 2 ** attempt + Math.random() * 500));
     }
   }
 }
