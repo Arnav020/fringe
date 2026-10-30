@@ -55,10 +55,11 @@ describe("places", () => {
     for (const n of ["Hilton Austin", "Lot 46 Music Bar", "Crazy Mountain Tap Room", "Austin Convention Center", "WRMH+9M8"]) expect(isHangout(place(n))).toBe(false);
     for (const n of ["Zilker Metropolitan Park", "Deep Eddy Pool", "Amy's Ice Creams"]) expect(isHangout(place(n))).toBe(true);
   });
-  it("uses outing categories for children and teens only", () => {
-    expect(outingTags("child")).toContain("urn:tag:category:place:park");
+  it("only suggests outing-type places, with categories by age", () => {
+    expect(outingTags("child")).toContain("urn:tag:category:place:playground");
+    expect(outingTags("child")).not.toContain("urn:tag:category:place:arcade");
     expect(outingTags("teen")).toContain("urn:tag:category:place:arcade");
-    expect(outingTags("older")).toBeUndefined();
+    expect(outingTags("older")).toContain("urn:tag:category:place:botanical_garden");
   });
 });
 

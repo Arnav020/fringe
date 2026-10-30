@@ -226,7 +226,7 @@ async function expand(seeds: Seed[], person: Person, t: Tracer) {
           t.calls++;
           // No signal.demographics.age here: in testing it pulled an Indian 12-year-old's board towards
           // US youth titles. Age is handled by content ratings, and Qloo demographics read the room.
-          const base = { type, entities: ids, exclude: ids, take: 14, explain: true };
+          const base = { type, entities: ids, exclude: ids, take: 14, explain: true, excludeTags: type === "person" ? [Q.POLITICIAN] : undefined };
           let res = await Q.insights({ ...base, ...g }).catch(() => []);
           if (res.length < 3 && Object.keys(g).length) {
             // Self-correct: the safety filter was too tight for this taste profile.
@@ -284,15 +284,15 @@ async function localise(seeds: Seed[], person: Person, foods: string[], t: Trace
         }
       }
       t.calls++;
-      // Children and teens: only outing-type places (parks, museums, ice cream…), via a union tag filter.
+      // Only outing-type places (parks, museums, pools…, by age), via a union tag filter.
       const outing = Q.outingTags(person.stage);
       let places = (await Q.insights({ type: "place", entities: ids, location: person.city, take: 24, filterTags: outing, anyTag: true }).catch(() => [])).filter(okPlace);
-      if (outing && places.length < 4) {
+      if (places.length < 4) {
+        // Thin coverage (smaller cities): widen, keeping only places Qloo marks as good for kids when it's a child.
         t.calls++;
         const wide = (await Q.insights({ type: "place", entities: ids, location: person.city, take: 24 }).catch(() => [])).filter(okPlace);
-        places = [...places, ...wide.filter((p) => p.kidFriendly)];
+        places = [...places, ...wide.filter((p) => !kid || p.kidFriendly)];
       }
-      void kid;
       return { places, foodPlaces, foodTag };
     },
     (r) =>
@@ -761,7 +761,7 @@ export async function buildBoard(input: BuildInput, emit: Emit): Promise<Board> 
       ? snackPicks.map((p) => ({ e: all.get(p.id), label: p.label, say: p.say }))
       : brands.slice(0, 4).map((e) => ({ e, label: shortName(e.name), say: TEMPLATE.food(shortName(e.name)) }))
     ).filter((x) => x.e);
-    for (const { e, label, say } of chosenSnacks.slice(0, 5)) {
+    for (const { e, label, say } of chosenSnacks.filter((x) => fresh(x.label || shortName(x.e!.name))).slice(0, 5)) {
       const drivers = because(e!);
       cells.push({
         id: e!.id,

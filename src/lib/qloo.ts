@@ -182,6 +182,8 @@ export interface InsightOptions {
   audiences?: string[];
   /** Match any of filterTags instead of all of them. */
   anyTag?: boolean;
+  /** Tags to exclude (filter.exclude.tags), e.g. the politician occupation for People. */
+  excludeTags?: string[];
 }
 
 /** /v2/insights — taste-graph recommendations for one entity type. */
@@ -194,6 +196,7 @@ export async function insights(o: InsightOptions): Promise<QlooEntity[]> {
     "filter.content_rating": o.contentRating,
     "filter.tags": o.filterTags?.join(","),
     "operator.filter.tags": o.anyTag && o.filterTags?.length ? "union" : undefined,
+    "filter.exclude.tags": o.excludeTags?.join(","),
     "filter.popularity.min": o.popularityMin,
     "filter.exclude.entities": o.exclude?.join(","),
     "signal.demographics.age": o.age,
@@ -300,11 +303,14 @@ export async function findTags(query: string, take = 5): Promise<SharedTag[]> {
 /** Place categories that suit an outing with a child or teen (used with operator.filter.tags=union). */
 const KID_CATEGORIES = ["park", "playground", "zoo", "museum", "aquarium", "amusement_park", "ice_cream_shop", "toy_store", "bowling_alley", "water_park", "library", "childrens_museum", "science_museum", "swimming_pool", "botanical_garden", "beach"];
 const TEEN_EXTRA = ["arcade", "movie_theater", "skate_park", "stadium", "trampoline_park", "book_store"];
-export function outingTags(stage: string): string[] | undefined {
-  if (stage === "child") return KID_CATEGORIES.map((c) => `urn:tag:category:place:${c}`);
-  if (stage === "teen") return [...KID_CATEGORIES, ...TEEN_EXTRA].map((c) => `urn:tag:category:place:${c}`);
-  return undefined;
+const ADULT_CATEGORIES = ["park", "museum", "botanical_garden", "garden", "zoo", "aquarium", "library", "book_store", "movie_theater", "art_gallery", "cafe", "tea_house", "diner", "beach", "theater_company", "stadium"];
+/** Without this, a taste-matched "place" can be a mortgage office or a sportsbook. */
+export function outingTags(stage: string): string[] {
+  const list = stage === "child" ? KID_CATEGORIES : stage === "teen" ? [...KID_CATEGORIES, ...TEEN_EXTRA] : ADULT_CATEGORIES;
+  return list.map((c) => `urn:tag:category:place:${c}`);
 }
+
+export const POLITICIAN = "urn:tag:occupation:person:politician";
 
 /** Places that are not somewhere you'd suggest going together: lodging, bars, transit, venues for business. */
 const NOT_A_HANGOUT =
