@@ -25,6 +25,7 @@ A caregiver writes one sentence: *"Loves Bluey, Taylor Swift, Encanto, Minecraft
 - **Talk with someone specific.** For a named partner (Grandpa Joe, 68), the agent compares both taste profiles with Qloo Compare. It finds shared themes (Country, Blues, Folk, Comedy, Family), searches with both profiles as the signal, and keeps topics with positive affinity in **both** age groups. *Little House on the Prairie* scores +22 for Maya's age group and +13 for Grandpa's. Each age-affinity pair is drawn as a bar chart.
 - **Keeps it current.** *"She's obsessed with dinosaurs now. Find somewhere she can swim. Remove Hello Neighbor, it scares her."* A **tool-calling agent** plans the changes and runs Qloo-backed tools. Dinosaurs becomes a Qloo tag used as a hard filter and ranked by *her* taste: *The Land Before Time* and *We're Back! A Dinosaur's Story*, not just Jurassic Park. It also finds real swimming pools in Austin and removes the scary game.
 - **Human in the loop.** Favourites the caregiver named go straight in. Everything the agent suggests waits in a review queue for a parent or SLP to keep or remove.
+- **Culturally specific, not US-template.** Aarav (12, Mumbai) gets Chhota Bheem, Motu Patlu, Lagaan, Shreya Ghoshal and Shah Rukh Khan. Tell the agent *"he's crazy about Virat Kohli now, find a cricket ground near him"* and it adds Sachin Tendulkar and Rohit Sharma, plus Wankhede Stadium and local gymkhanas.
 - **Access-aware.** "Large targets" mode gives eye-gaze, switch and motor-access users fewer, bigger buttons. It's on by default for Leo, who uses eye-gaze.
 - **No lock-in.** One-click export to **Open Board Format (.obz)**, the open interchange format for AAC boards.
 - **"Without Qloo", run live.** The same model fills the same board with no taste graph, and every suggestion is checked against Qloo. On Maya's note, 9 of 12 LLM-only suggestions just restate the note, and its local "places" are events that can't be verified. It has no pictures and no audience signal.
@@ -77,4 +78,4 @@ No login is needed. Open https://fringe-aac.vercel.app/studio?p=maya; the first 
 2. Tap a "Tastes change" example to run the tool-calling agent.
 3. Open "Talk with Grandpa Joe" and build the bridge.
 4. Open "Without Qloo" and run the control.
-5. Switch to Leo or Ruth, or "Your own".
+5. Switch to Aarav (Mumbai), Leo or Ruth, or "Your own".

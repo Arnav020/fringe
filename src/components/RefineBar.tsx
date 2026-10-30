@@ -9,6 +9,7 @@ import { upsertTrace } from "./Trace";
 const EXAMPLES: Record<string, string[]> = {
   maya: ["She's obsessed with dinosaurs now", "Find somewhere she can swim", "Remove Hello Neighbor, it scares her"],
   leo: ["He's really into Formula 1 now", "Find a basketball court near him", "Add “That was a foul!” to games"],
+  aarav: ["He's crazy about Virat Kohli now", "Find a cricket ground near him", "Add “Six!” and “Out!” to people"],
   ruth: ["She's started watching Downton Abbey", "Find a quiet tea room nearby", "Add “That's my song!” to music"],
 };
 

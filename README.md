@@ -99,7 +99,7 @@ No Qloo response data is committed to this repository. All Qloo data is fetched 
 4. Open **Without Qloo** → run the LLM-only control and compare.
 5. In **"Tastes change"**, tap *"She's obsessed with dinosaurs now"* and watch the tool-calling agent update the board.
 6. Turn on **Caregiver review**, keep or remove suggestions, then **Export (.obz)**.
-7. Try **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
+7. Try **Aarav** (12, Mumbai: most AAC vocabulary sets are US-centric; his board knows Chhota Bheem, Shreya Ghoshal and Wankhede Stadium), **Leo** (16, eye-gaze user, Chicago) and **Ruth** (71, aphasia, Boston), or build your own.
 
 ## Responsible design
 

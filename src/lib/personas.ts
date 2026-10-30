@@ -45,6 +45,23 @@ export const PERSONAS: Persona[] = [
     },
   },
   {
+    slug: "aarav",
+    name: "Aarav",
+    age: 12,
+    city: "Mumbai, India",
+    condition: "Down syndrome, speech hard to understand",
+    access: "Touch, phone",
+    headline: "His board came from an American template. It doesn’t know Chhota Bheem.",
+    likes: "Shah Rukh Khan, Chhota Bheem, cricket, Pokemon, Arijit Singh, butter chicken",
+    about: "Cricket-mad, does a perfect SRK impression.",
+    partner: {
+      name: "Nani",
+      age: 66,
+      relation: "grandmother",
+      likes: "Lata Mangeshkar, Sholay, Kaun Banega Crorepati, masala chai",
+    },
+  },
+  {
     slug: "ruth",
     name: "Ruth",
     age: 71,

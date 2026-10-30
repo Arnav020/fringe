@@ -21,12 +21,12 @@ const TOOLS: ToolDef[] = [
     function: {
       name: "add_interest",
       description:
-        "Add something the person now loves: a specific title/artist/game/book (e.g. 'Paw Patrol', 'Olivia Rodrigo') or a broad theme (e.g. 'dinosaurs', 'space', 'trains'). Finds it in Qloo and suggests related items across shows, movies, books and music.",
+        "Add something the person now loves: a specific title/artist/game/book/public figure (e.g. 'Paw Patrol', 'Olivia Rodrigo') or a broad theme (e.g. 'dinosaurs', 'space', 'trains'). Finds it in Qloo and suggests related items across shows, movies, books and music.",
       parameters: {
         type: "object",
         properties: {
           name: { type: "string", description: "The title, name or theme" },
-          kind: { type: "string", enum: ["tv_show", "movie", "artist", "videogame", "book", "theme"], description: "What it is. Use 'theme' for broad topics." },
+          kind: { type: "string", enum: ["tv_show", "movie", "artist", "videogame", "book", "person", "theme"], description: "What it is. Use 'theme' for broad topics." },
         },
         required: ["name", "kind"],
       },
@@ -56,7 +56,7 @@ const TOOLS: ToolDef[] = [
       parameters: {
         type: "object",
         properties: {
-          folder: { type: "string", enum: ["shows", "movies", "music", "games", "books", "places", "food"] },
+          folder: { type: "string", enum: ["shows", "movies", "music", "games", "books", "people", "places", "food"] },
           phrases: { type: "array", items: { type: "string" } },
         },
         required: ["folder", "phrases"],

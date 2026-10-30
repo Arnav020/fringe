@@ -136,7 +136,7 @@ export default function Home() {
       <section className="mx-auto mt-24 w-full max-w-[1240px] px-4 sm:px-6">
         <h2 className="display text-[40px] sm:text-[48px] leading-none text-ink">Try it with a real-feeling person</h2>
         <p className="mt-3 max-w-2xl text-[16px] text-muted">Each board below is built live by the agent from a one-line note. Tap a picture to hear it speak; tap <b className="text-ink-2">i</b> to see the Qloo evidence.</p>
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {PERSONAS.map((p) => (
             <Link key={p.slug} href={`/studio?p=${p.slug}`} className="neu group block p-6 transition-transform hover:-translate-y-1">
               <div className="flex items-center gap-3">
