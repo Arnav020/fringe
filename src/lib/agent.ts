@@ -691,6 +691,34 @@ async function curate(
 
 export const LANG_NAME: Record<string, string> = { hi: "Hindi", es: "Spanish", mr: "Marathi", ta: "Tamil", bn: "Bengali" };
 
+/** Phrase patterns per folder, used when the model can't translate (rate limits): the board still speaks the family's language. */
+const LANG_TEMPLATE: Record<string, Partial<Record<FolderKey | "seed", (n: string) => string>>> = {
+  hi: {
+    seed: (n) => `मुझे ${n} बहुत पसंद है!`,
+    shows: (n) => `क्या हम ${n} देख सकते हैं?`,
+    movies: (n) => `मुझे ${n} देखनी है`,
+    music: (n) => `${n} लगाओ!`,
+    games: (n) => `चलो ${n} खेलते हैं!`,
+    books: (n) => `मेरे साथ ${n} पढ़ो`,
+    people: (n) => `मुझे ${n} पसंद है!`,
+    places: (n) => `क्या हम ${n} चलें?`,
+    food: (n) => `मुझे ${n} चाहिए`,
+    bridge: (n) => `क्या आपको ${n} पसंद है?`,
+  },
+  es: {
+    seed: (n) => `¡Me encanta ${n}!`,
+    shows: (n) => `¿Podemos ver ${n}?`,
+    movies: (n) => `Quiero ver ${n}`,
+    music: (n) => `¡Pon ${n}!`,
+    games: (n) => `¡Juguemos a ${n}!`,
+    books: (n) => `Lee ${n} conmigo`,
+    people: (n) => `¡Me gusta ${n}!`,
+    places: (n) => `¿Podemos ir a ${n}?`,
+    food: (n) => `Quiero ${n}`,
+    bridge: (n) => `¿Te gusta ${n}?`,
+  },
+};
+
 async function translate(person: Person, folders: Folder[], t: Tracer) {
   if (!person.lang || !LANG_NAME[person.lang]) return;
   const cells = folders.flatMap((f) => f.cells);
@@ -709,13 +737,25 @@ async function translate(person: Person, folders: Folder[], t: Tracer) {
   );
   const out = r?.data?.t;
   const ok = Array.isArray(out) && out.length === cells.length;
+  const tpl = LANG_TEMPLATE[person.lang];
   if (ok) cells.forEach((c, i) => (c.alt = { label: c.alt?.label ?? c.label, say: String(out![i] ?? "").slice(0, 120) }));
+  else if (tpl)
+    for (const f of folders)
+      for (const c of f.cells) {
+        const label = c.alt?.label ?? c.label;
+        const make = (c.kind === "seed" ? tpl.seed : tpl[f.key]) ?? tpl.seed!;
+        c.alt = { label, say: make(label) };
+      }
   else cells.forEach((c) => c.alt && !c.alt.say && (c.alt = undefined));
   t.note(
     "translate",
     `Writing phrases in ${lang}`,
-    ok ? `${cells.length} phrases · ${cells.filter((c) => c.alt?.label && c.alt.label !== c.label).length} labels from Qloo's ${lang} names` : "translation unavailable, board stays in English",
-    ok ? "done" : "warn",
+    ok
+      ? `${cells.length} phrases · ${cells.filter((c) => c.alt?.label && c.alt.label !== c.label).length} labels from Qloo's ${lang} names`
+      : tpl
+        ? `model busy: used ${lang} phrase patterns for ${cells.length} buttons`
+        : "translation unavailable, board stays in English",
+    ok || tpl ? (ok ? "done" : "warn") : "warn",
   );
 }
 
