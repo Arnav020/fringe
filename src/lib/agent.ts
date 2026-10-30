@@ -321,36 +321,62 @@ async function expand(sig: Signal, person: Person, t: Tracer) {
     "Expanding across shows, movies, music, games, books and people",
     "GET /v2/insights × 6 · with explainability",
     async () => {
-      await Promise.all(
-        DOMAINS.filter(({ type }) => person.stage !== "older" || type !== "videogame" || sig.types.includes(type)).map(async ({ key, type }) => {
-          const g = guards(person.stage, type);
+      const run = async ({ key, type }: (typeof DOMAINS)[number], ids: string[], tags: string[]) => {
+        const g = guards(person.stage, type);
+        t.calls++;
+        // No signal.demographics.age here: in testing it pulled an Indian 12-year-old's board towards
+        // US youth titles. Age is handled by content ratings, and Qloo demographics read the room.
+        const base = { type, entities: ids, tags, exclude: ids, take: 14, explain: true, excludeTags: type === "person" ? [Q.POLITICIAN] : undefined };
+        let res = await Q.insights({ ...base, ...g }).catch(() => []);
+        if (res.length < 3 && Object.keys(g).length) {
+          // Self-correct: the safety filter was too tight for this taste profile.
           t.calls++;
-          // No signal.demographics.age here: in testing it pulled an Indian 12-year-old's board towards
-          // US youth titles. Age is handled by content ratings, and Qloo demographics read the room.
-          const base = { type, entities: ids, tags, exclude: ids, take: 14, explain: true, excludeTags: type === "person" ? [Q.POLITICIAN] : undefined };
-          let res = await Q.insights({ ...base, ...g }).catch(() => []);
-          if (res.length < 3 && Object.keys(g).length) {
-            // Self-correct: the safety filter was too tight for this taste profile.
-            t.calls++;
-            res = await Q.insights({ ...base, popularityMin: 0.5 }).catch(() => []);
-            t.note(`expand-${key}`, `Relaxed filters for ${key}`, `only a few rated titles matched, retried with a popularity floor instead`, "warn");
-          }
-          // A theme alongside named favourites: titles tagged with it, ranked by their taste, go first.
-          if (ids.length && sig.tags.length && ["tv_show", "movie", "book"].includes(type)) {
-            const themed = await Promise.all(
-              sig.tags.slice(0, 2).map((tag) => {
+          res = await Q.insights({ ...base, popularityMin: 0.5 }).catch(() => []);
+          t.note(`expand-${key}`, `Relaxed filters for ${key}`, `only a few rated titles matched, retried with a popularity floor instead`, "warn");
+        }
+        // A theme alongside named favourites: titles tagged with it, ranked by their taste, go first.
+        if (ids.length && sig.tags.length && ["tv_show", "movie", "book"].includes(type)) {
+          const themed = await Promise.all(
+            sig.tags.slice(0, 2).map((tag) => {
+              t.calls++;
+              return Q.insights({ type, entities: ids, exclude: ids, take: 6, explain: true, ...g, filterTags: [tag] }).catch(() => []);
+            }),
+          );
+          const seen = new Set<string>();
+          res = [...themed.flat(), ...res].filter((e) => !seen.has(e.id) && !!seen.add(e.id));
+        }
+        // Theme-park specials are catalogued as shows; they're places, not topics.
+        // Only the type that was asked for (a tag signal can bring back people in the artist list).
+        out[key] = res.filter((e) => String(e.type) === type && !THEME_PARK.test(e.name) && suitable(person.age, e));
+      };
+      const domains = DOMAINS.filter(({ type }) => person.stage !== "older" || type !== "videogame" || sig.types.includes(type));
+      if (ids.length || !tags.length) {
+        await Promise.all(domains.map((d) => run(d, ids, tags)));
+      } else {
+        // Only themes ("trains, dinosaurs"): a media tag means something to shows, films and books, not to
+        // musicians or games. So themes find the titles first, and those titles steer everything else.
+        const media = domains.filter((d) => ["tv_show", "movie", "book"].includes(d.type));
+        await Promise.all(
+          media.map(async (d) => {
+            if (d.type === "book") return run(d, [], tags); // the children's-books guard already uses filter.tags
+            // Shows and films actually tagged with each theme, interleaved so every theme is represented.
+            const g = guards(person.stage, d.type);
+            const lists = await Promise.all(
+              tags.slice(0, 3).map((tag) => {
                 t.calls++;
-                return Q.insights({ type, entities: ids, exclude: ids, take: 6, explain: true, ...g, filterTags: [tag] }).catch(() => []);
+                return Q.insights({ type: d.type, tags, filterTags: [tag], take: 8, explain: true, ...g }).catch(() => []);
               }),
             );
             const seen = new Set<string>();
-            res = [...themed.flat(), ...res].filter((e) => !seen.has(e.id) && !!seen.add(e.id));
-          }
-          // Theme-park specials are catalogued as shows; they're places, not topics.
-          // Only the type that was asked for (a tag signal can bring back people in the artist list).
-          out[key] = res.filter((e) => String(e.type) === type && !THEME_PARK.test(e.name) && suitable(person.age, e));
-        }),
-      );
+            const merged = Array.from({ length: 8 }, (_, i) => lists.map((l) => l[i])).flat().filter((e): e is Q.QlooEntity => !!e && !seen.has(e.id) && !!seen.add(e.id));
+            if (merged.length >= 4) out[d.key] = merged.filter((e) => String(e.type) === d.type && !THEME_PARK.test(e.name) && suitable(person.age, e));
+            else await run(d, [], tags);
+          }),
+        );
+        const steer = [...(out.shows ?? []).slice(0, 2), ...(out.movies ?? []).slice(0, 2)].map((e) => e.id);
+        t.note("expand-steer", "Using the themed titles as taste", `${[...(out.shows ?? []).slice(0, 2), ...(out.movies ?? []).slice(0, 2)].map((e) => e.name).join(", ")} steer music, games and people`);
+        await Promise.all(domains.filter((d) => !media.includes(d)).map((d) => run(d, steer, [])));
+      }
       return out;
     },
     (r) =>
