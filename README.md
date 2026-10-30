@@ -4,7 +4,7 @@
 
 Fringe is an AI agent that builds personal **AAC** (augmentative and alternative communication) boards from **Qloo's taste graph**. It gives people who can't rely on speech the words for the shows, songs, games, books, foods and places they love, so they can do what most talk is for: connect with people.
 
-> One sentence from a parent or speech therapist ("loves Bluey, Taylor Swift, Encanto, Minecraft, mac and cheese") becomes a working, talking board of about 50 picture buttons in roughly 10 seconds. Every button traces back to a Qloo entity or the caregiver's own words.
+> One sentence from a parent or speech therapist ("loves Bluey, Taylor Swift, Encanto, Minecraft, mac and cheese") becomes a working, talking board of more than 60 picture buttons in about 5 to 10 seconds. Every button traces back to a Qloo entity or the caregiver's own words.
 
 ---
 
@@ -68,7 +68,7 @@ Running the LLM-only control on Maya's note produced mostly restatements of the 
 flowchart LR
   A[Caregiver note] --> U[Understand<br/>Groq gpt-oss-120b]
   U --> R[Resolve<br/>Qloo /search]
-  R --> E[Expand<br/>Qloo /v2/insights x5<br/>+ age guard rails]
+  R --> E[Expand<br/>Qloo /v2/insights x6<br/>+ age guard rails]
   R --> L[Localise<br/>Qloo /v2/tags + place insights]
   R --> H[Hot-spots<br/>Qloo urn:heatmap → place by geohash]
   R --> S[Snacks<br/>Qloo brand insights]

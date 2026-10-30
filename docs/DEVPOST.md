@@ -19,7 +19,7 @@ An 8-year-old whose board can say "juice" but not "Bluey" can't join the convers
 
 ## What it does
 
-A caregiver writes one sentence: *"Loves Bluey, Taylor Swift, Encanto, Minecraft, mac and cheese, swimming."* Fringe's agent builds a working, talking AAC board of about 50 picture buttons in roughly 10 seconds, and every step streams live into the studio.
+A caregiver writes one sentence: *"Loves Bluey, Taylor Swift, Encanto, Minecraft, mac and cheese, swimming."* Fringe's agent builds a working, talking AAC board of more than 60 picture buttons in about 5 to 10 seconds, and every step streams live into the studio.
 
 - **Talking board.** A sentence strip with text-to-speech; 24 core words with symbols in **fixed positions** (including *help*, *stop* and *all done*), colour-coded with the Modified Fitzgerald Key, as AAC practice recommends for motor planning; and personal topic folders (Shows, Movies, Music, Games, Books, People, Places, Food) with real pictures and natural first-person phrases ("Can we watch Bluey?"), plus social-closeness phrases ("Have you seen it?").
 - **Evidence on every button.** The Qloo affinity score; **which of the person's favourites led to it**, from Qloo explainability (*Wings of Fire*: Bluey 35%, Minecraft 30%); how widely known it is (an easy opener, or a niche pick); which age groups it lands with; the address for places; and the Qloo entity id.
