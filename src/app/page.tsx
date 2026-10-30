@@ -248,7 +248,7 @@ export default function Home() {
           {[
             [HomeIcon, "Families", "Free in the browser. Describe your person, review the suggestions, export to the AAC app you already use.", "Today"],
             [Building2, "SLPs & schools", "A caseload studio: one board per student, refreshed each term as tastes change, with partner pages for classmates and aides.", "Next"],
-            [Blocks, "AAC platforms", "Fringe as an API and agent tool: the taste layer AAC never had, plugged into existing apps through Open Board Format.", "Then"],
+            [Blocks, "AAC platforms", "Already an MCP server any agent can call (build_aac_board, talk_with_partner), and boards export to Open Board Format: the taste layer AAC never had.", "Then"],
           ].map(([Icon, t, b, when]) => {
             const I = Icon as typeof Lock;
             return (

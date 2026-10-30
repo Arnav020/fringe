@@ -77,6 +77,19 @@ flowchart LR
 - **Device UI** (`src/components/Device.tsx`): sentence strip, Web Speech output, Fitzgerald-coded core words, picture folders, caregiver review mode.
 - **OBF export** (`src/lib/obf.ts`): root board with fixed core words, linked to one sub-board per folder.
 
+## Use Fringe from your own agent (MCP)
+
+Fringe is also an **MCP server** (Streamable HTTP, stateless), so an existing agent such as Claude, an AAC app's assistant or a care-coordination bot can give its users culturally grounded vocabulary:
+
+```bash
+claude mcp add --transport http fringe https://fringe-aac.vercel.app/api/mcp
+```
+
+| Tool | What it does |
+|---|---|
+| `build_aac_board(name, age, city, likes)` | Runs the full build agent and returns the board: a text summary for the model, plus the full board as `structuredContent`. |
+| `talk_with_partner(..., partnerName, partnerAge, partnerLikes)` | Runs the bridge agent for a specific conversation partner. |
+
 ## Run it locally
 
 ```bash

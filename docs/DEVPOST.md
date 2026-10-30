@@ -27,6 +27,7 @@ A caregiver writes one sentence: *"Loves Bluey, Taylor Swift, Encanto, Minecraft
 - **Human in the loop.** Favourites the caregiver named go straight in. Everything the agent suggests waits in a review queue for a parent or SLP to keep or remove.
 - **Culturally specific, not US-template.** Aarav (12, Mumbai) gets Chhota Bheem, Motu Patlu, Lagaan, Shreya Ghoshal and Shah Rukh Khan. Tell the agent *"he's crazy about Virat Kohli now, find a cricket ground near him"* and it adds Sachin Tendulkar and Rohit Sharma, plus Wankhede Stadium and local gymkhanas.
 - **Access-aware.** "Large targets" mode gives eye-gaze, switch and motor-access users fewer, bigger buttons. It's on by default for Leo, who uses eye-gaze.
+- **Plugs into other agents.** Fringe is an **MCP server** (`/api/mcp`, tools `build_aac_board` and `talk_with_partner`), so Qloo-grounded AAC vocabulary can be wired into agents people already use.
 - **No lock-in.** One-click export to **Open Board Format (.obz)**, the open interchange format for AAC boards.
 - **"Without Qloo", run live.** The same model fills the same board with no taste graph, and every suggestion is checked against Qloo. On Maya's note, 9 of 12 LLM-only suggestions just restate the note, and its local "places" are events that can't be verified. It has no pictures and no audience signal.
 
@@ -62,7 +63,7 @@ The LLM handles language. **Qloo decides what goes on the board**: the curation 
 
 1. **Families:** free, in the browser.
 2. **SLPs and schools:** a caseload studio with one board per student, refreshed each term, plus partner pages for classmates and aides.
-3. **AAC platforms:** Fringe as an API and agent tool, giving AAC apps a taste layer through Open Board Format.
+3. **AAC platforms:** the MCP server and Open Board Format export already exist, giving AAC apps a taste layer.
 
 AAC devices are routinely funded by insurers and schools; the labour of making them personal is not. Fringe turns that labour into a one-sentence review task.
 
