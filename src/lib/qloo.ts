@@ -56,7 +56,22 @@ export class QlooError extends Error {
 }
 
 function rawGet(path: string, query: string): Promise<unknown> {
-  return memo(`q:${path}?${query}`, 24 * 3600_000, () => fetchQloo(path, query));
+  return memo(`q:${path}?${query}`, 24 * 3600_000, () => limited(() => fetchQloo(path, query)));
+}
+
+/** At most MAX_IN_FLIGHT Qloo requests at once per instance, so a burst of boards queues instead of hitting 429s. */
+const MAX_IN_FLIGHT = 8;
+let inFlight = 0;
+const waiting: (() => void)[] = [];
+async function limited<T>(fn: () => Promise<T>): Promise<T> {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise<void>((r) => waiting.push(r));
+  inFlight++;
+  try {
+    return await fn();
+  } finally {
+    inFlight--;
+    waiting.shift()?.();
+  }
 }
 
 async function fetchQloo(path: string, query: string): Promise<unknown> {
@@ -73,7 +88,7 @@ async function fetchQloo(path: string, query: string): Promise<unknown> {
   return res.json();
 }
 
-/** GET with one retry on 429/5xx. Params are sorted so cache keys are stable. */
+/** GET with up to two retries (backoff with jitter) on 429/5xx. Params are sorted so cache keys are stable. */
 export async function qlooGet(path: string, params: Record<string, string | number | undefined>) {
   const qs = new URLSearchParams(
     Object.entries(params)
@@ -81,14 +96,14 @@ export async function qlooGet(path: string, params: Record<string, string | numb
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => [k, String(v)]),
   ).toString();
-  try {
-    return await rawGet(path, qs);
-  } catch (e) {
-    if (e instanceof QlooError && (e.status === 429 || e.status >= 500)) {
-      await new Promise((r) => setTimeout(r, 700));
-      return rawGet(path, qs);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await rawGet(path, qs);
+    } catch (e) {
+      const retryable = e instanceof QlooError && (e.status === 429 || e.status >= 500);
+      if (!retryable || attempt >= 2) throw e;
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1) + Math.random() * 400));
     }
-    throw e;
   }
 }
 
