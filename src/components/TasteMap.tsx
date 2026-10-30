@@ -47,7 +47,7 @@ export default function TasteMap({ board, onPick }: { board: Board; onPick: (c: 
         ))}
         {heat.spots.filter(inside).map((s) => (
           <g key={s.label}>
-            <circle cx={x(s.lng)} cy={y(s.lat)} r={13} fill="none" stroke="var(--color-accent, #d9482b)" strokeWidth={1.5} strokeDasharray="3 3" />
+            <circle cx={x(s.lng)} cy={y(s.lat)} r={16} fill="rgba(255,255,255,0.35)" stroke="#1b2130" strokeWidth={2} strokeDasharray="4 3" />
           </g>
         ))}
         {pins.filter((c) => inside(c.geo!)).map((c) => (
@@ -59,7 +59,7 @@ export default function TasteMap({ board, onPick }: { board: Board; onPick: (c: 
       </svg>
       <div className="mt-2 flex items-center justify-between text-[11.5px] text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full border border-dashed border-accent" /> taste hot-spot
+          <span className="inline-block h-2.5 w-2.5 rounded-full border border-dashed border-ink" /> taste hot-spot
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-ink" /> place on the board
