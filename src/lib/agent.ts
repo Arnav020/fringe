@@ -251,7 +251,7 @@ async function localise(seeds: Seed[], person: Person, foods: string[], t: Trace
       const city = person.city.split(",")[0].trim().toLowerCase();
       places = places.filter(
         (p) =>
-          !/hotel|\binn\b|suites|\bbar\b|\bpub\b|lounge|casino|airport|convention|terminal/i.test(p.name) &&
+          Q.isHangout(p) &&
           p.name.trim().toLowerCase() !== city,
       );
       if (person.stage === "child") {

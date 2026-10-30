@@ -2,6 +2,7 @@ import "server-only";
 import * as Q from "./qloo";
 import { chatJson } from "./llm";
 import type { BridgeInput, Cell, Folder, TraceEvent } from "./types";
+import { TYPE_TO_FOLDER, guards } from "./agent";
 
 /**
  * Partner bridge: find the topics an AAC user and a specific conversation
@@ -42,7 +43,14 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
     "GET /search",
     async () => {
       const parts = input.partnerLikes.split(/,|;|\n/).map((s) => s.trim()).filter(Boolean).slice(0, 6);
-      const hits = await Promise.all(parts.map((p) => Q.search(p, undefined, 1).then((h) => h[0]).catch(() => undefined)));
+      // Prefer the entity that belongs on a board (artist over person/album, show over brand).
+      const hits = await Promise.all(
+        parts.map((p) =>
+          Q.search(p, undefined, 6)
+            .then((h) => h.find((e) => TYPE_TO_FOLDER[String(e.type)]) ?? h[0])
+            .catch(() => undefined),
+        ),
+      );
       return hits.filter(Boolean) as Q.QlooEntity[];
     },
     (r) => `${r.length} matched: ${r.map((e) => e.name).join(", ")}`,
@@ -85,11 +93,12 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
             exclude: [...a, ...b],
             take: 8,
             location: type === "place" ? input.person.city : undefined,
-            contentRating: input.person.stage === "child" ? (type === "movie" ? "G,PG" : type === "tv_show" ? "TV-Y,TV-Y7,TV-G,TV-PG" : undefined) : undefined,
+            ...guards(input.person.stage, type),
           }).catch(() => []),
         ),
       );
-      return lists.flat().filter((e) => !/hotel|inn|suites|bar\b|pub\b|casino/i.test(e.name));
+      const partnerNames = new Set(partnerSeeds.map((e) => e.name.toLowerCase()));
+      return lists.flat().filter((e) => Q.isHangout(e) && !partnerNames.has(e.name.toLowerCase()));
     },
     (r) => `${r.length} candidates`,
   );
@@ -108,9 +117,10 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
         const d = byId.get(e.id);
         const u = d?.age[userBucket] ?? 0;
         const p = d?.age[partnerBucket] ?? 0;
+        const known = !!d && (u !== 0 || p !== 0);
         // Bridge score: taste affinity, plus reward when BOTH generations lean in.
         const both = d ? Math.min(u, p) : 0;
-        return { e, u, p, score: (e.affinity ?? 0.5) + both * 0.8 };
+        return { e, u, p, known, score: (e.affinity ?? 0.5) + both * 0.8 };
       });
       return withScore.sort((x, y) => y.score - x.score);
     },
@@ -143,7 +153,7 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
   const say = new Map((llm?.data.cells ?? []).map((c) => [c.id, c.say]));
 
   const pct = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}`;
-  const cells: Cell[] = picks.map(({ e, u, p }) => ({
+  const cells: Cell[] = picks.map(({ e, u, p, known }) => ({
     id: `bridge-${e.id}`,
     label: e.name.replace(/\s*\(.*?\)/g, "").slice(0, 30),
     say: say.get(e.id) || `${input.partnerName}, have you seen ${e.name}?`,
@@ -155,10 +165,10 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
     why:
       e.type === "place"
         ? `A place in ${input.person.city} that matches both taste profiles.${e.address ? ` · ${e.address}` : ""}`
-        : `Recommended by Qloo from both profiles together. Age affinity: ${input.person.name}'s group ${pct(u)}, ${input.partnerName}'s group ${pct(p)}.`,
+        : `Recommended by Qloo from both taste profiles together.${known ? ` Age affinity: ${input.person.name}'s group ${pct(u)}, ${input.partnerName}'s group ${pct(p)}.` : ""}`,
     talkWith: input.partnerName,
     address: e.address,
-    pair: e.type === "place" ? undefined : { user: u, partner: p },
+    pair: e.type === "place" || !known ? undefined : { user: u, partner: p },
     status: "suggested",
   }));
 

@@ -212,3 +212,11 @@ export async function findTags(query: string, take = 5): Promise<SharedTag[]> {
   const d = (await qlooGet("/v2/tags", { "filter.query": query, take })) as Raw;
   return (d.results?.tags ?? []).map((t: Raw) => ({ id: t.id, name: t.name, subtype: t.type }));
 }
+
+/** Places that are not somewhere you'd suggest going together: lodging, bars, transit, venues for business. */
+const NOT_A_HANGOUT =
+  /hotel|\binn\b|suites|motel|hostel|resort|marriott|hyatt|hilton|aloft|sheraton|westin|by ihg|holiday inn|doubletree|\bbar\b|\bpub\b|lounge|casino|nightclub|airport|convention|terminal|station\b/i;
+
+export function isHangout(e: QlooEntity) {
+  return !NOT_A_HANGOUT.test(e.name);
+}

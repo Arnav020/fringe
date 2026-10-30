@@ -195,7 +195,7 @@ export async function refineBoard(board: Board, instruction: string, emit: (e: T
         let used: Q.SharedTag | undefined;
         for (const t of ranked.slice(0, 3)) {
           places = (await Q.insights({ type: "place", entities: seedIds(), filterTags: [t.id], location: person.city, take: 8 }).catch(() => [])).filter(
-            (p) => !/hotel|inn|suites|by ihg|marriott|hilton|casino/i.test(p.name),
+            Q.isHangout,
           );
           if (places.length) {
             used = t;
