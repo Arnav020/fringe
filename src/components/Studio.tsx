@@ -42,10 +42,13 @@ export default function Studio() {
   const [tab, setTab] = useState<Tab>("board");
   const [refineTrace, setRefineTrace] = useState<TraceEvent[]>([]);
   const ran = useRef<string | null>(null);
+  // Each build gets a number; a slower, older build (the persona was switched mid-way) must not overwrite a newer one.
+  const latest = useRef(0);
 
   const cacheKey = (i: BuildInput) => `fringe:${CACHE_VERSION}:${i.name}|${i.age}|${i.city}|${i.likes}|${i.lang ?? ""}`;
 
   const build = useCallback(async (i: BuildInput, force = false) => {
+    const run = ++latest.current;
     setErr(null);
     setInspect(null);
     setRefineTrace([]);
@@ -55,6 +58,7 @@ export default function Studio() {
     if (cached) {
       setBoard(cached.board);
       setTrace(cached.trace);
+      setBusy(false);
       return;
     }
     setBusy(true);
@@ -65,14 +69,15 @@ export default function Studio() {
       const b = await runAgent<Board>("/api/build", i, (e) => {
         const next = upsertTrace(collected, e);
         collected.splice(0, collected.length, ...next);
-        setTrace(next);
+        if (run === latest.current) setTrace(next);
       });
-      setBoard(b);
       store.set(cacheKey(i), { board: b, trace: collected });
+      if (run !== latest.current) return;
+      setBoard(b);
     } catch (e) {
-      setErr((e as Error).message);
+      if (run === latest.current) setErr((e as Error).message);
     } finally {
-      setBusy(false);
+      if (run === latest.current) setBusy(false);
     }
   }, []);
 

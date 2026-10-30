@@ -210,7 +210,8 @@ export async function buildBridge(input: BridgeInput, emit: (e: TraceEvent) => v
   }));
 
   // The partner's own favourites become questions the AAC user can ask.
-  for (const e of partnerSeeds.slice(0, 3)) {
+  // "Ask them about…" buttons sit on the AAC user's board, so they follow the user's age rules too.
+  for (const e of partnerSeeds.filter((x) => suitable(input.person.age, x)).slice(0, 3)) {
     cells.push({
       id: `ask-${e.id}`,
       label: e.name.slice(0, 30),

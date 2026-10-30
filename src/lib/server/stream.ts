@@ -28,11 +28,14 @@ export function ndjsonRun<T>(run: (emit: (e: TraceEvent) => void) => Promise<T>)
 
 /** Very small per-instance rate limiter so one visitor can't drain the shared API quota. */
 const hits = new Map<string, number[]>();
-export function rateLimited(req: Request, max = 12, windowMs = 60_000) {
+export function rateLimited(req: Request, max = 20, windowMs = 60_000) {
+  if (process.env.NODE_ENV !== "production") return false;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  // Per endpoint, so building a board doesn't use up the budget for refining it.
+  const key = `${new URL(req.url).pathname}|${ip}`;
   const now = Date.now();
-  const list = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
+  const list = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
   list.push(now);
-  hits.set(ip, list);
+  hits.set(key, list);
   return list.length > max;
 }

@@ -85,10 +85,13 @@ async function handle(msg: Rpc) {
       const noop = () => {};
       try {
         if (name === "build_aac_board") {
+          if (!String(a.likes ?? "").trim()) return ok(msg.id, { content: [{ type: "text", text: "Missing 'likes': list a few things they love, e.g. \"Bluey, Taylor Swift, Minecraft, pizza\"." }], isError: true });
           const board = await buildBoard({ name: String(a.name ?? ""), age: Number(a.age) || 10, city: String(a.city ?? ""), likes: String(a.likes ?? ""), lang: a.lang ? String(a.lang).slice(0, 2) : undefined }, noop);
           return ok(msg.id, { content: [{ type: "text", text: summarise(board) }], structuredContent: board });
         }
         if (name === "talk_with_partner") {
+          if (!String(a.partnerLikes ?? "").trim() || !Array.isArray(a.seeds) || !a.seeds.length)
+            return ok(msg.id, { content: [{ type: "text", text: "Needs 'seeds' (the favourites' Qloo ids from build_aac_board) and 'partnerLikes'." }], isError: true });
           const age = Number(a.age) || 10;
           const folder = await buildBridge(
             {

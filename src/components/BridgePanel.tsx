@@ -24,7 +24,9 @@ export default function BridgePanel({ board, defaults, onFolder, onOpen }: Props
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [result, setResult] = useState<Folder | null>(null);
 
-  const seeds = board.folders.flatMap((f) => f.cells.filter((c) => c.kind === "seed" && c.entityId).map((c) => ({ id: c.entityId!, name: c.label })));
+  // The favourites the family named; a board built only from themes ("dinosaurs") uses its top picks instead.
+  const named = board.folders.flatMap((f) => f.cells.filter((c) => c.kind === "seed" && c.entityId && c.status === "approved").map((c) => ({ id: c.entityId!, name: c.label })));
+  const seeds = (named.length ? named : board.folders.flatMap((f) => f.cells.filter((c) => c.kind === "expanded" && c.entityId && c.entityType !== "brand").slice(0, 2)).map((c) => ({ id: c.entityId!, name: c.label }))).slice(0, 8);
 
   const run = async () => {
     setBusy(true);

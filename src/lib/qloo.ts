@@ -131,7 +131,9 @@ function trim(r: Raw): QlooEntity {
   for (const a of Array.isArray(p.akas) ? p.akas : []) {
     if (LANGS.includes(a.language) && !names[a.language] && a.value) names[a.language] = String(a.value).trim();
   }
-  const because = r.query?.explainability?.["signal.interests.entities"];
+  // Explainability is keyed by signal kind; entity and tag signals both count (themes like "dinosaurs" are tags).
+  const ex = r.query?.explainability ?? {};
+  const because = [...(ex["signal.interests.entities"] ?? []), ...(ex["signal.interests.tags"] ?? []).map((x: Raw) => ({ ...x, entity_id: x.entity_id ?? x.tag_id ?? x.id }))];
   return {
     id: r.entity_id,
     name: r.name,
@@ -145,7 +147,7 @@ function trim(r: Raw): QlooEntity {
       ? p.good_for.some((g: Raw) => String(g.id).includes("good_kids"))
       : undefined,
     tags: Array.isArray(r.tags) ? r.tags.slice(0, 6).map((t: Raw) => t.name) : undefined,
-    because: Array.isArray(because) ? because.map((b: Raw) => ({ id: b.entity_id, score: b.score })) : undefined,
+    because: because.length ? because.map((b: Raw) => ({ id: b.entity_id, score: b.score })) : undefined,
     names: Object.keys(names).length ? names : undefined,
     rating: typeof p.content_rating === "string" ? p.content_rating : undefined,
     lat: r.location?.lat ?? p.geocode?.latitude,
